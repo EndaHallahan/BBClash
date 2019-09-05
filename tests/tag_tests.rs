@@ -123,4 +123,36 @@ fn size_em_under_argument() {
     	"<p><span style=\"font-size:0.5rem;\">This should be .5em!</span></p>");
 }
 
+/*-- IMAGE --*/
+#[test]
+fn image_no_argument() {
+    assert_eq!(bbcode_to_html("[img]"), 
+        "<p>[img]</p>");
+}
+#[test]
+fn image_https_arg() {
+    assert_eq!(bbcode_to_html("[img=https://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png]"), 
+        "<p><img src=\"https://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png\"></p>");
+}
+#[test]
+fn image_http_arg() {
+    assert_eq!(bbcode_to_html("[img=http://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png]"), 
+        "<p><img src=\"http://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png\"></p>");
+}
+#[test]
+fn image_www_arg() {
+    assert_eq!(bbcode_to_html("[img=www.endahallahan.github.io/Penclash-Splash-Site/resources/logo.png]"), 
+        "<p><img src=\"http://www.endahallahan.github.io/Penclash-Splash-Site/resources/logo.png\"></p>");
+}
+#[test]
+fn image_bad_filetype() {
+    assert_eq!(bbcode_to_html("[img=https://d/bad_image.svg]"), 
+        "");
+}
+#[test]
+fn image_bad_arg() {
+    assert_eq!(bbcode_to_html("[img=a onerror=alert('XSS')]"), 
+        "");
+}
+
 

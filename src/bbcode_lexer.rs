@@ -240,6 +240,61 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Url);
 	}
 
+	fn cmd_img(&mut self, arg: &String) {
+		if arg.starts_with("https://") || arg.starts_with("http://") {
+			if let Some(index) = arg.rfind(".") {
+				if let Some(suffix) = arg.get(index..) {
+					if ACCEPTED_IMAGE_TYPES.contains(suffix) {
+						self.new_group(GroupType::Image);
+						self.current_node.borrow_mut().set_void(true);
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Image);
+					} else {
+						self.new_group(GroupType::Broken);
+						self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+						self.end_group(GroupType::Broken);
+					}
+				} else {
+					self.new_group(GroupType::Broken);
+					self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+					self.end_group(GroupType::Broken);
+				}
+			} else {
+				self.new_group(GroupType::Broken);
+				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+				self.end_group(GroupType::Broken);
+			}
+
+		} else if arg.starts_with("www.") {
+			if let Some(index) = arg.rfind(".") {
+				if let Some(suffix) = arg.get(index..) {
+					if ACCEPTED_IMAGE_TYPES.contains(suffix) {
+						self.new_group(GroupType::Image);
+						self.current_node.borrow_mut().set_void(true);
+						self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
+						self.end_group(GroupType::Image);
+					} else {
+						self.new_group(GroupType::Broken);
+						self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+						self.end_group(GroupType::Broken);
+					}
+				} else {
+					self.new_group(GroupType::Broken);
+					self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+					self.end_group(GroupType::Broken);
+				}
+			} else {
+				self.new_group(GroupType::Broken);
+				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+				self.end_group(GroupType::Broken);
+			}
+		} else {
+			self.new_group(GroupType::Broken);
+			self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+			self.end_group(GroupType::Broken);
+		}
+	}
+
 	fn cmd_opacity_open(&mut self, arg: &String) {
 		let mut divisor = 1.0;
 		let arg_string;
@@ -368,6 +423,7 @@ static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_
     "color" => BBCodeLexer::cmd_colour_open,
 	"colour" => BBCodeLexer::cmd_colour_open,
 	"url" => BBCodeLexer::cmd_url_open,
+	"img" => BBCodeLexer::cmd_img,
 	"opacity" => BBCodeLexer::cmd_opacity_open,
 	"size" => BBCodeLexer::cmd_size_open
 };
@@ -671,4 +727,21 @@ static WEB_COLOURS: phf::Set<&'static str> = phf_set! {
     "Whitesmoke",
     "Yellow",
     "Yellowgreen"
+};
+
+/// Static compile-time set of accepted image types.
+static ACCEPTED_IMAGE_TYPES: phf::Set<&'static str> = phf_set! {
+	".jpg",
+	".jpeg",
+	".pjpeg",
+	".pjp",
+	".jfif",
+	".png",
+	".apng",
+	".gif",
+	".bmp",
+	//".svg", Dangerous!
+	".webp",
+	".ico",
+	".cur"
 };

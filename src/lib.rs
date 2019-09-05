@@ -16,7 +16,7 @@ BBClash also comes ready out-of-the-box for use as WASM or with other languages 
 
 Because this package was built for an existing application, and because it is performance-focused, BBClash's BBCode implementation is entirely hard-coded. Because of this, it is reccommended that you download a local copy and modify it to suit your needs. *Note: currently requires Rust Nightly to build. Relevant issue: [54727](https://github.com/rust-lang/rust/issues/54727)*
 
-Building is as simple as running `$ cargo build`. Tests and benchmarks can be run with `$ cargo test` and `$ cargo build`, respectively.
+Building is as simple as running `$ cargo build`. Tests and benchmarks can be run with `$ cargo test` and `$ cargo bench`, respectively.
 */
 
 #![feature(proc_macro_hygiene)]
@@ -76,7 +76,7 @@ impl ASTElement {
 	pub fn ele_type(&self) -> &GroupType {
 		&self.ele_type
 	}
-	/// Sets an ASTElement's is_void field.
+	/// Sets an ASTElement's is_void field (indicates that the ASTElement does not contain text or children).
 	pub fn set_void(&mut self, in_void: bool) {
 		self.is_void = in_void;
 	}
@@ -144,7 +144,7 @@ pub enum GroupType {
 	Size,
 	Center,
 	Right,
-	//Image,
+	Image,
 	//Quote,
 	//Footnote,
 	//Indent,
@@ -170,6 +170,7 @@ pub enum GroupType {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Argument {
 	Colour(String),
-	Url(String)
+	Url(String),
+	Image(String),
 }
 

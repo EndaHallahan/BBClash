@@ -59,6 +59,11 @@ impl HTMLConstructor {
 			GroupType::Size => {
 				self.output_string.push_str(&format!("<span style=\"font-size:{}rem;\">", element.argument()));
 			},
+			GroupType::Image => {
+				self.output_string.push_str(
+					&format!("<img src=\"{}\">", element.argument())
+					);
+			},
 			_ => return
 		};
 	}
