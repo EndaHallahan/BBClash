@@ -56,15 +56,15 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 #[derive(Debug, Clone)]
 pub struct ASTElement {
 	ele_type: GroupType,
-	text_contents: String,
-	argument: String,
+	text_contents: Option<String>,
+	argument: Option<String>,
 	is_void: bool,
 }
 impl ASTElement {
 	/// Creates a new ASTElement.
 	pub fn new(ele_type: GroupType) -> ASTElement {
-		let text_contents = String::new();
-		let argument = String::new();
+		let text_contents = None;
+		let argument = None;
 		let is_void = false;
 		ASTElement{ele_type, text_contents, argument, is_void}
 	}
@@ -86,26 +86,39 @@ impl ASTElement {
 	}
 	/// Adds text to an ASTElement.
 	pub fn add_text(&mut self, new_text: &String) {
-		self.text_contents = format!("{}{}", self.text_contents, new_text);
+		if let Some(text) = &self.text_contents {
+			self.text_contents = Some(format!("{}{}", text, new_text));
+		} else {
+			self.text_contents = Some(new_text.to_string());
+		}
+		
 	}
 	/// Gets whether or not an ASTElement has text.
 	pub fn has_text(&self) -> bool {
-		!self.text_contents.trim().is_empty()
+		if let Some(_) = &self.text_contents {
+			true
+		} else {
+			false
+		}
 	}
 	/// Gets an immutable reference to an ASTElement's text_contents.
-	pub fn text_contents(&self) -> &String {
+	pub fn text_contents(&self) -> &Option<String> {
 		&self.text_contents
 	}
 	/// Sets an ASTElement's Argument field.
 	pub fn set_arg(&mut self, arg: &String) {
-		self.argument = arg.to_string();
+		self.argument = Some(arg.to_string());
 	}
 	/// Gets whether or not an ASTElement has an argument.
 	pub fn has_arg(&mut self) -> bool {
-		!self.argument.trim().is_empty()
+		if let Some(_) = &self.argument {
+			true
+		} else {
+			false
+		}
 	}
 	/// Gets an immutable reference to an ASTElement's argument field.
-	pub fn argument(&self) -> &String {
+	pub fn argument(&self) -> &Option<String> {
 		&self.argument
 	}
 }
@@ -145,7 +158,7 @@ pub enum GroupType {
 	Center,
 	Right,
 	Image,
-	//Quote,
+	Quote,
 	//Footnote,
 	//Indent,
 	//Pre,
@@ -157,7 +170,9 @@ pub enum GroupType {
 	//Code,
 	//CodeBlock,
 	//Icon,
-	//Math
+	//Math,
+	//Table,
+	//TableItem,
 	Paragraph,
 	Scenebreak,
 	Null,
@@ -172,5 +187,6 @@ pub enum Argument {
 	Colour(String),
 	Url(String),
 	Image(String),
+	Quote(String),
 }
 

@@ -28,7 +28,11 @@ impl HTMLConstructor {
 	/// Opens an HTML tag.
 	fn start_element(&mut self, element: Ref<ASTElement>) {
 		match element.ele_type() {
-			GroupType::Text => {self.output_string.push_str(element.text_contents())},
+			GroupType::Text => {
+				if let Some(text) = element.text_contents() {
+					self.output_string.push_str(text)
+				}	
+			},
 			GroupType::Paragraph => {self.output_string.push_str("<p>")},
 			GroupType::Bold => {self.output_string.push_str("<b>")},
 			GroupType::Strong => {self.output_string.push_str("<strong>")},
@@ -46,23 +50,38 @@ impl HTMLConstructor {
 			GroupType::Center => {self.output_string.push_str("<div class=\"center\">")},
 			GroupType::Right => {self.output_string.push_str("<div class=\"right\">")},
 			GroupType::Colour => {
-				self.output_string.push_str(&format!("<span style=\"color:{};\">", element.argument()));
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<span style=\"color:{};\">", arg));
+				}	
 			},
 			GroupType::Url => {
-				self.output_string.push_str(
-					&format!("<a href=\"{}\" rel=\"nofollow\">", element.argument())
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(
+					&format!("<a href=\"{}\" rel=\"nofollow\">", arg)
 					);
+				}	
 			},
 			GroupType::Opacity => {
-				self.output_string.push_str(&format!("<span style=\"opacity:{};\">", element.argument()));
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<span style=\"opacity:{};\">", arg));
+				}
 			},
 			GroupType::Size => {
-				self.output_string.push_str(&format!("<span style=\"font-size:{}rem;\">", element.argument()));
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<span style=\"font-size:{}rem;\">", arg));
+				}
 			},
 			GroupType::Image => {
-				self.output_string.push_str(
-					&format!("<img src=\"{}\">", element.argument())
-					);
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<img src=\"{}\">", arg));
+				}
+			},
+			GroupType::Quote => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<div class=\"quote\" data-author=\"{}\">", arg));
+				} else {
+					self.output_string.push_str(&format!("<div class=\"quote\">"));
+				}
 			},
 			_ => return
 		};
@@ -88,7 +107,8 @@ impl HTMLConstructor {
 			GroupType::Size
 				=> {self.output_string.push_str("</span>")},
 			GroupType::Center |
-			GroupType::Right
+			GroupType::Right |
+			GroupType::Quote
 				=> {self.output_string.push_str("</div>")}
 			_ => return
 		};

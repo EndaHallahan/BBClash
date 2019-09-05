@@ -355,6 +355,17 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Size);
 	}
 
+	fn cmd_quote_open(&mut self) {
+		self.new_group(GroupType::Quote);
+	}
+	fn cmd_quote_arg_open(&mut self, arg: &String) {
+		self.new_group(GroupType::Quote);
+		self.current_node.borrow_mut().set_arg(arg);
+	}
+	fn cmd_quote_close(&mut self) {
+		self.end_group(GroupType::Quote);
+	}
+
 	fn cmd_hr(&mut self) {
 		self.new_group(GroupType::Hr);
 		self.current_node.borrow_mut().set_void(true);
@@ -416,7 +427,9 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/colour" => BBCodeLexer::cmd_colour_close,
 	"/opacity" => BBCodeLexer::cmd_opacity_close,
 	"/size" => BBCodeLexer::cmd_size_close,
-	"/url" => BBCodeLexer::cmd_url_close
+	"/url" => BBCodeLexer::cmd_url_close,
+	"quote" => BBCodeLexer::cmd_quote_open,
+	"/quote" => BBCodeLexer::cmd_quote_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
@@ -425,7 +438,8 @@ static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_
 	"url" => BBCodeLexer::cmd_url_open,
 	"img" => BBCodeLexer::cmd_img,
 	"opacity" => BBCodeLexer::cmd_opacity_open,
-	"size" => BBCodeLexer::cmd_size_open
+	"size" => BBCodeLexer::cmd_size_open,
+	"quote" => BBCodeLexer::cmd_quote_arg_open,
 };
 /// Static compile-time set of valid HTML web colours.
 static WEB_COLOURS: phf::Set<&'static str> = phf_set! {
