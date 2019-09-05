@@ -1,0 +1,29 @@
+[package]
+name = "bbclash"
+description = "A robust, opinionated, performance-focused BBCode to HTML parser and compiler."
+keywords = ["bbcode"]
+categories = ["parser-implementations"]
+license = "MIT"
+version = "0.1.0"
+authors = ["Enda Hallahan <41527196+EndaHallahan@users.noreply.github.com>"]
+edition = "2018"
+readme = "README.md"
+documentation = "https://docs.rs/bbclash/"
+repository = "https://github.com/EndaHallahan/BBClash"
+
+
+[lib]
+name = "bbclash"
+crate-type = ["dylib", "rlib"]
+bench = false
+
+[dependencies]
+rctree = "0.2.1"
+phf = { version = "0.7", features = ["macros"] }
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "benchmarks"
+harness = false
