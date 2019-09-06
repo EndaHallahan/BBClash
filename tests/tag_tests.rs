@@ -30,8 +30,8 @@ fn color_hex_bad_arg() {
 /*-- URL --*/
 #[test]
 fn url_no_argument() {
-    assert_eq!(bbcode_to_html("[url]This should not be a link[/url]"), 
-    	"<p>[url]This should not be a link</p>");
+    assert_eq!(bbcode_to_html("[url]https://www.penclash.com[/url]"), 
+    	"<p><a href=\"https://www.penclash.com\" rel=\"nofollow\">https://www.penclash.com</a></p>");
 }
 #[test]
 fn url_https_arg() {
@@ -122,36 +122,36 @@ fn size_em_under_argument() {
     assert_eq!(bbcode_to_html("[size=.1em]This should be .5em![/size]"), 
     	"<p><span style=\"font-size:0.5rem;\">This should be .5em!</span></p>");
 }
-
+/*
 /*-- IMAGE --*/
 #[test]
 fn image_no_argument() {
-    assert_eq!(bbcode_to_html("[img]"), 
+    assert_eq!(bbcode_to_html("[img][/img]"), 
         "<p>[img]</p>");
 }
 #[test]
 fn image_https_arg() {
-    assert_eq!(bbcode_to_html("[img=https://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png]"), 
+    assert_eq!(bbcode_to_html("[img]https://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png[/img]"), 
         "<p><img src=\"https://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png\"></p>");
 }
 #[test]
 fn image_http_arg() {
-    assert_eq!(bbcode_to_html("[img=http://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png]"), 
+    assert_eq!(bbcode_to_html("[img]http://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png[/img]"), 
         "<p><img src=\"http://endahallahan.github.io/Penclash-Splash-Site/resources/logo.png\"></p>");
 }
 #[test]
 fn image_www_arg() {
-    assert_eq!(bbcode_to_html("[img=www.endahallahan.github.io/Penclash-Splash-Site/resources/logo.png]"), 
+    assert_eq!(bbcode_to_html("[img]www.endahallahan.github.io/Penclash-Splash-Site/resources/logo.png[/img]"), 
         "<p><img src=\"http://www.endahallahan.github.io/Penclash-Splash-Site/resources/logo.png\"></p>");
 }
 #[test]
 fn image_bad_filetype() {
-    assert_eq!(bbcode_to_html("[img=https://d/bad_image.svg]"), 
+    assert_eq!(bbcode_to_html("[img]https://d/bad_image.svg[/img]"), 
         "");
 }
 #[test]
 fn image_bad_arg() {
-    assert_eq!(bbcode_to_html("[img=a onerror=alert('XSS')]"), 
+    assert_eq!(bbcode_to_html("[img]a onerror=alert('XSS')[/img]"), 
         "");
 }
 
@@ -166,5 +166,5 @@ fn quote_argument() {
     assert_eq!(bbcode_to_html("[quote=Shakespeare]To be, or not to be.[/quote]"), 
         "<p><div class=\"quote\" data-author=\"Shakespeare\">To be, or not to be.</div></p>");
 }
-
+*/
 

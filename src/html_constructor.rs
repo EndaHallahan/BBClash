@@ -56,9 +56,7 @@ impl HTMLConstructor {
 			},
 			GroupType::Url => {
 				if let Some(arg) = element.argument() {
-					self.output_string.push_str(
-					&format!("<a href=\"{}\" rel=\"nofollow\">", arg)
-					);
+					self.output_string.push_str(&format!("<a href=\"{}\" rel=\"nofollow\">", arg));
 				}	
 			},
 			GroupType::Opacity => {

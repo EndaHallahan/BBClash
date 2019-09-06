@@ -109,6 +109,15 @@ impl ASTElement {
 	pub fn set_arg(&mut self, arg: &String) {
 		self.argument = Some(arg.to_string());
 	}
+	/// Adds to arg of an ASTElement.
+	pub fn add_arg(&mut self, new_arg: &String) {
+		if let Some(arg) = &self.argument {
+			self.argument = Some(format!("{}{}", arg, new_arg));
+		} else {
+			self.argument = Some(new_arg.to_string());
+		}
+		
+	}
 	/// Gets whether or not an ASTElement has an argument.
 	pub fn has_arg(&mut self) -> bool {
 		if let Some(_) = &self.argument {
@@ -186,7 +195,6 @@ pub enum GroupType {
 pub enum Argument {
 	Colour(String),
 	Url(String),
-	Image(String),
 	Quote(String),
 }
 

@@ -7,14 +7,16 @@ use super::ASTElement;
 /// Struct for lexing BBCode Instructions into an ASTElement tree.
 pub struct BBCodeLexer {
 	current_node: Node<ASTElement>,
-	anchor: Node<ASTElement>
+	anchor: Node<ASTElement>,
+	next_text_as_arg: Option<fn(&mut BBCodeLexer, &String)>
 }
 impl BBCodeLexer {
 	/// Creates a new BBCodeLexer.
 	pub fn new() -> BBCodeLexer {
 		let anchor = Node::new(ASTElement::new(GroupType::Anchor));
 		let current_node = Node::new(ASTElement::new(GroupType::Document));
-		BBCodeLexer{current_node, anchor}
+		let next_text_as_arg = None;
+		BBCodeLexer{current_node, anchor, next_text_as_arg}
 	}
 	/// Lexes a vector of Instructions.
 	pub fn lex(&mut self, instructions: &Vec<Instruction>) -> Node<ASTElement> {
@@ -29,29 +31,41 @@ impl BBCodeLexer {
 	}
 	/// Matches Instruction types.
 	fn execute(&mut self, instruction: &Instruction) {
-		match instruction {
-			Instruction::Text(param) => {
-				self.new_group(GroupType::Text);
-				self.current_node.borrow_mut().add_text(&param);
-				self.end_group(GroupType::Text);
+		if let Some(arg_cmd) = self.next_text_as_arg {
+			match instruction {
+				Instruction::Text(param) => {
+					arg_cmd(self, param);
+				}
+				_ => {
+					self.next_text_as_arg = None;
+					self.execute(instruction);
+				}
 			}
-			Instruction::Tag(param, arg) => {self.parse_tag(&param, arg);},
-			Instruction::Parabreak => {
-				self.end_group(GroupType::Paragraph);
-				self.new_group(GroupType::Paragraph);
+		} else {
+			match instruction {
+				Instruction::Text(param) => {
+					self.new_group(GroupType::Text);
+					self.current_node.borrow_mut().add_text(&param);
+					self.end_group(GroupType::Text);
+				}
+				Instruction::Tag(param, arg) => {self.parse_tag(&param, arg);},
+				Instruction::Parabreak => {
+					self.end_group(GroupType::Paragraph);
+					self.new_group(GroupType::Paragraph);
+				}
+				Instruction::Linebreak => {
+					self.new_group(GroupType::Br);
+					self.current_node.borrow_mut().set_void(true);
+					self.end_group(GroupType::Br);
+				}
+				Instruction::Scenebreak => {
+					self.new_group(GroupType::Scenebreak);
+					self.current_node.borrow_mut().set_void(true);
+					self.end_group(GroupType::Scenebreak);
+				}
+				_ => {}
 			}
-			Instruction::Linebreak => {
-				self.new_group(GroupType::Br);
-				self.current_node.borrow_mut().set_void(true);
-				self.end_group(GroupType::Br);
-			}
-			Instruction::Scenebreak => {
-				self.new_group(GroupType::Scenebreak);
-				self.current_node.borrow_mut().set_void(true);
-				self.end_group(GroupType::Scenebreak);
-			}
-			_ => {}
-		}
+		}	
 	}
 	/// Creates a new ASTElement.
 	fn new_group(&mut self, ele_type: GroupType) {
@@ -224,6 +238,23 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Colour);
 	}
 
+	fn cmd_url_bare_open(&mut self) {
+		self.next_text_as_arg = Some(BBCodeLexer::cmd_url_arg);
+		self.new_group(GroupType::Url);
+	}
+	fn cmd_url_arg(&mut self, arg: &String) {
+		if arg.starts_with("https://") || arg.starts_with("http://") {
+			self.current_node.borrow_mut().set_arg(arg);
+		} else if arg.starts_with("www.") {
+			self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
+		} else {
+			self.current_node.borrow_mut().set_ele_type(GroupType::Broken);
+			self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
+		}
+		self.new_group(GroupType::Text);
+		self.current_node.borrow_mut().add_text(arg);
+		self.end_group(GroupType::Text);
+	}
 	fn cmd_url_open(&mut self, arg: &String) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			self.new_group(GroupType::Url);
@@ -427,16 +458,18 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/colour" => BBCodeLexer::cmd_colour_close,
 	"/opacity" => BBCodeLexer::cmd_opacity_close,
 	"/size" => BBCodeLexer::cmd_size_close,
+	"url" => BBCodeLexer::cmd_url_bare_open,
 	"/url" => BBCodeLexer::cmd_url_close,
 	"quote" => BBCodeLexer::cmd_quote_open,
 	"/quote" => BBCodeLexer::cmd_quote_close,
+	//"img" => BBCodeLexer::cmd_img_open,
+	//"/img" => BBCodeLexer::cmd_img_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
     "color" => BBCodeLexer::cmd_colour_open,
 	"colour" => BBCodeLexer::cmd_colour_open,
 	"url" => BBCodeLexer::cmd_url_open,
-	"img" => BBCodeLexer::cmd_img,
 	"opacity" => BBCodeLexer::cmd_opacity_open,
 	"size" => BBCodeLexer::cmd_size_open,
 	"quote" => BBCodeLexer::cmd_quote_arg_open,
