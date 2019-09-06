@@ -122,12 +122,12 @@ fn size_em_under_argument() {
     assert_eq!(bbcode_to_html("[size=.1em]This should be .5em![/size]"), 
     	"<p><span style=\"font-size:0.5rem;\">This should be .5em!</span></p>");
 }
-/*
+
 /*-- IMAGE --*/
 #[test]
 fn image_no_argument() {
     assert_eq!(bbcode_to_html("[img][/img]"), 
-        "<p>[img]</p>");
+        "");
 }
 #[test]
 fn image_https_arg() {
@@ -166,5 +166,5 @@ fn quote_argument() {
     assert_eq!(bbcode_to_html("[quote=Shakespeare]To be, or not to be.[/quote]"), 
         "<p><div class=\"quote\" data-author=\"Shakespeare\">To be, or not to be.</div></p>");
 }
-*/
+
 

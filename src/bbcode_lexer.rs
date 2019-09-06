@@ -271,7 +271,11 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Url);
 	}
 
-	fn cmd_img(&mut self, arg: &String) {
+	fn cmd_img_open(&mut self) {
+		self.next_text_as_arg = Some(BBCodeLexer::cmd_img_arg);
+		self.new_group(GroupType::Image);
+	}
+	fn cmd_img_arg(&mut self, arg: &String) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			if let Some(index) = arg.rfind(".") {
 				if let Some(suffix) = arg.get(index..) {
@@ -324,6 +328,9 @@ impl BBCodeLexer {
 			self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
 			self.end_group(GroupType::Broken);
 		}
+	}
+	fn cmd_img_close(&mut self) {
+		self.end_group(GroupType::Image);
 	}
 
 	fn cmd_opacity_open(&mut self, arg: &String) {
@@ -462,8 +469,8 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/url" => BBCodeLexer::cmd_url_close,
 	"quote" => BBCodeLexer::cmd_quote_open,
 	"/quote" => BBCodeLexer::cmd_quote_close,
-	//"img" => BBCodeLexer::cmd_img_open,
-	//"/img" => BBCodeLexer::cmd_img_close,
+	"img" => BBCodeLexer::cmd_img_open,
+	"/img" => BBCodeLexer::cmd_img_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
