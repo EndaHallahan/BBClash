@@ -39,6 +39,7 @@ impl HTMLConstructor {
 			GroupType::Italic => {self.output_string.push_str("<i>")},
 			GroupType::Emphasis => {self.output_string.push_str("<em>")},
 			GroupType::Underline => {self.output_string.push_str("<span class=\"underline\">")},
+			GroupType::Strikethrough => {self.output_string.push_str("<s>")},
 			GroupType::Smallcaps => {self.output_string.push_str("<span class=\"smallcaps\">")},
 			GroupType::Monospace => {self.output_string.push_str("<span class=\"monospace\">")},
 			GroupType::Subscript => {self.output_string.push_str("<sub>")},
@@ -76,9 +77,9 @@ impl HTMLConstructor {
 			},
 			GroupType::Quote => {
 				if let Some(arg) = element.argument() {
-					self.output_string.push_str(&format!("<div class=\"quote\" data-author=\"{}\">", arg));
+					self.output_string.push_str(&format!("<blockquote data-author=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<div class=\"quote\">"));
+					self.output_string.push_str(&format!("<blockquote>"));
 				}
 			},
 			_ => return
@@ -95,7 +96,9 @@ impl HTMLConstructor {
 			GroupType::Emphasis => {self.output_string.push_str("</em>")},
 			GroupType::Subscript => {self.output_string.push_str("</sub>")},
 			GroupType::Superscript => {self.output_string.push_str("</sup>")},
+			GroupType::Strikethrough => {self.output_string.push_str("</s>")},
 			GroupType::Url => {self.output_string.push_str("</a>")},
+			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
 			GroupType::Underline |
 			GroupType::Smallcaps |
 			GroupType::Monospace |
@@ -105,8 +108,7 @@ impl HTMLConstructor {
 			GroupType::Size
 				=> {self.output_string.push_str("</span>")},
 			GroupType::Center |
-			GroupType::Right |
-			GroupType::Quote
+			GroupType::Right
 				=> {self.output_string.push_str("</div>")}
 			_ => return
 		};

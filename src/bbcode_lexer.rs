@@ -299,7 +299,6 @@ impl BBCodeLexer {
 				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
 				self.end_group(GroupType::Broken);
 			}
-
 		} else if arg.starts_with("www.") {
 			if let Some(index) = arg.rfind(".") {
 				if let Some(suffix) = arg.get(index..) {
@@ -395,12 +394,15 @@ impl BBCodeLexer {
 
 	fn cmd_quote_open(&mut self) {
 		self.new_group(GroupType::Quote);
+		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_quote_arg_open(&mut self, arg: &String) {
 		self.new_group(GroupType::Quote);
 		self.current_node.borrow_mut().set_arg(arg);
+		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_quote_close(&mut self) {
+		self.end_group(GroupType::Paragraph);
 		self.end_group(GroupType::Quote);
 	}
 
@@ -796,6 +798,4 @@ static ACCEPTED_IMAGE_TYPES: phf::Set<&'static str> = phf_set! {
 	".bmp",
 	//".svg", Dangerous!
 	".webp",
-	".ico",
-	".cur"
 };

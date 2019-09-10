@@ -159,12 +159,20 @@ fn image_bad_arg() {
 #[test]
 fn quote_no_argument() {
     assert_eq!(bbcode_to_html("[quote]To be, or not to be.[/quote]"), 
-        "<p><div class=\"quote\">To be, or not to be.</div></p>");
+        "<p><blockquote><p>To be, or not to be.</p></blockquote></p>");
 }
 #[test]
 fn quote_argument() {
     assert_eq!(bbcode_to_html("[quote=Shakespeare]To be, or not to be.[/quote]"), 
-        "<p><div class=\"quote\" data-author=\"Shakespeare\">To be, or not to be.</div></p>");
+        "<p><blockquote data-author=\"Shakespeare\"><p>To be, or not to be.</p></blockquote></p>");
 }
+#[test]
+fn quote_multiline() {
+    assert_eq!(bbcode_to_html("[quote]To be, or not to be.
 
+        That is the question.
+
+        [/quote]"), 
+        "<p><blockquote><p>To be, or not to be.</p><p>That is the question.</p></blockquote></p>");
+}
 
