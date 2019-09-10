@@ -301,3 +301,37 @@ fn codeblock_adjacent_paragraph() {
         That is the question."), 
         "<pre>To be, or not to be.</pre><p>That is the question.</p>");
 }
+
+/*-- FIGURE --*/
+#[test]
+fn figure_right_arg() {
+    assert_eq!(bbcode_to_html("[figure=right]To be, or not to be.[/figure]"), 
+        "<figure class=\"figure-right\">To be, or not to be.</figure>");
+}
+#[test]
+fn figure_left_arg() {
+    assert_eq!(bbcode_to_html("[figure=left]To be, or not to be.[/figure]"), 
+        "<figure class=\"figure-left\">To be, or not to be.</figure>");
+}
+#[test]
+fn figure_bad_arg() {
+    assert_eq!(bbcode_to_html("[figure=up]To be, or not to be.[/figure]"), 
+        "<p>To be, or not to be.</p>");
+}
+#[test]
+fn figure_interrupt() {
+    assert_eq!(bbcode_to_html("That is the [figure=right]To be, or not to be.[/figure] question."), 
+        "<p>That is the </p><figure class=\"figure-right\">To be, or not to be.</figure><p> question.</p>");
+}
+#[test]
+fn figure_adjacent() {
+    assert_eq!(bbcode_to_html("[figure=right]To be, or not to be.[/figure][figure=right]That is the question.[/figure]"), 
+        "<figure class=\"figure-right\">To be, or not to be.</figure><figure class=\"figure-right\">That is the question.</figure>");
+}
+#[test]
+fn figure_adjacent_paragraph() {
+    assert_eq!(bbcode_to_html("[figure=right]To be, or not to be.[/figure]
+
+        That is the question."), 
+        "<figure class=\"figure-right\">To be, or not to be.</figure><p>That is the question.</p>");
+}

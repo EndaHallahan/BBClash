@@ -82,6 +82,11 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<img src=\"{}\">", arg));
 				}
 			},
+			GroupType::Figure => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<figure class=\"figure-{}\">", arg));
+				}
+			},
 			GroupType::Quote => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<blockquote data-author=\"{}\">", arg));
@@ -121,6 +126,7 @@ impl HTMLConstructor {
 			GroupType::Url => {self.output_string.push_str("</a>")},
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
 			GroupType::Code => {self.output_string.push_str("</code>")},
+			GroupType::Figure => {self.output_string.push_str("</figure>")},
 			GroupType::Header => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("</h{}>", arg));

@@ -174,7 +174,7 @@ pub enum GroupType {
 	Pre,
 	//PreLine,
 	Header,
-	//Figure,
+	Figure,
 	//List,
 	//Embed,
 	Code,
