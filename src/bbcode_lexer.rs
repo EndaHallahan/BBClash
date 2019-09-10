@@ -8,7 +8,9 @@ use super::ASTElement;
 pub struct BBCodeLexer {
 	current_node: Node<ASTElement>,
 	anchor: Node<ASTElement>,
-	next_text_as_arg: Option<fn(&mut BBCodeLexer, &String)>
+	next_text_as_arg: Option<fn(&mut BBCodeLexer, &String)>,
+	ignore_tags: Option<&'static str>,
+	ignore_formatting: bool,
 }
 impl BBCodeLexer {
 	/// Creates a new BBCodeLexer.
@@ -16,7 +18,9 @@ impl BBCodeLexer {
 		let anchor = Node::new(ASTElement::new(GroupType::Anchor));
 		let current_node = Node::new(ASTElement::new(GroupType::Document));
 		let next_text_as_arg = None;
-		BBCodeLexer{current_node, anchor, next_text_as_arg}
+		let ignore_tags = None;
+		let ignore_formatting = false;
+		BBCodeLexer{current_node, anchor, next_text_as_arg, ignore_tags, ignore_formatting}
 	}
 	/// Lexes a vector of Instructions.
 	pub fn lex(&mut self, instructions: &Vec<Instruction>) -> Node<ASTElement> {
@@ -48,20 +52,51 @@ impl BBCodeLexer {
 					self.current_node.borrow_mut().add_text(&param);
 					self.end_group(GroupType::Text);
 				}
-				Instruction::Tag(param, arg) => {self.parse_tag(&param, arg);},
-				Instruction::Parabreak => {
-					self.end_group(GroupType::Paragraph);
-					self.new_group(GroupType::Paragraph);
+				Instruction::Tag(param, arg) => {
+					if let Some(command) = self.ignore_tags {
+						if param == command {
+							self.parse_tag(&param, arg);
+						} else {
+							let tag_text = format!("[{}{}]", param, {if let Some(argu) = arg {argu} else {""}});
+							self.new_group(GroupType::Text);
+							self.current_node.borrow_mut().add_text(&tag_text);
+							self.end_group(GroupType::Text);
+						}	
+					} else {
+						self.parse_tag(&param, arg);
+					}		
+				},
+				Instruction::Parabreak(param) => {
+					if self.ignore_formatting {
+						self.new_group(GroupType::Text);
+						self.current_node.borrow_mut().add_text(&param);
+						self.end_group(GroupType::Text);
+					} else {
+						self.end_group(GroupType::Paragraph);
+						self.new_group(GroupType::Paragraph);
+					}	
 				}
 				Instruction::Linebreak => {
-					self.new_group(GroupType::Br);
-					self.current_node.borrow_mut().set_void(true);
-					self.end_group(GroupType::Br);
+					if self.ignore_formatting {
+						self.new_group(GroupType::Text);
+						self.current_node.borrow_mut().add_text(&"\n".to_string());
+						self.end_group(GroupType::Text);
+					} else {
+						self.new_group(GroupType::Br);
+						self.current_node.borrow_mut().set_void(true);
+						self.end_group(GroupType::Br);
+					}
 				}
 				Instruction::Scenebreak => {
-					self.new_group(GroupType::Scenebreak);
-					self.current_node.borrow_mut().set_void(true);
-					self.end_group(GroupType::Scenebreak);
+					if self.ignore_formatting {
+						self.new_group(GroupType::Text);
+						self.current_node.borrow_mut().add_text(&"\n\n\n".to_string());
+						self.end_group(GroupType::Text);
+					} else {
+						self.new_group(GroupType::Scenebreak);
+						self.current_node.borrow_mut().set_void(true);
+						self.end_group(GroupType::Scenebreak);
+					}
 				}
 				_ => {}
 			}
@@ -279,9 +314,11 @@ impl BBCodeLexer {
 	fn cmd_pre_open(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Pre);
+		self.ignore_formatting = true;
 	}
 	fn cmd_pre_close(&mut self) {
 		self.end_group(GroupType::Pre);
+		self.ignore_formatting = false;
 		self.new_group(GroupType::Paragraph);
 	}
 
@@ -484,23 +521,31 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_code_open(&mut self) {
+		self.ignore_tags = Some("/code");
 		self.new_group(GroupType::Code);
 	}
 	fn cmd_code_close(&mut self) {
 		self.end_group(GroupType::Code);
+		self.ignore_tags = None;
 	}
 
 	fn cmd_codeblock_bare_open(&mut self) {
 		self.end_group(GroupType::Paragraph);
+		self.ignore_tags = Some("/codeblock");
+		self.ignore_formatting = true;
 		self.new_group(GroupType::CodeBlock);
 	}
 	fn cmd_codeblock_open(&mut self, arg: &String) {
 		self.end_group(GroupType::Paragraph);
+		self.ignore_tags = Some("/codeblock");
+		self.ignore_formatting = true;
 		self.new_group(GroupType::CodeBlock);
 		self.current_node.borrow_mut().set_arg(arg);
 	}
 	fn cmd_codeblock_close(&mut self) {
 		self.end_group(GroupType::CodeBlock);
+		self.ignore_tags = None;
+		self.ignore_formatting = false;
 		self.new_group(GroupType::Paragraph);
 	}
 
@@ -509,12 +554,14 @@ impl BBCodeLexer {
 			self.end_group(GroupType::Paragraph);
 			self.new_group(GroupType::Figure);
 			self.current_node.borrow_mut().set_arg(arg);
+			self.new_group(GroupType::Paragraph);
 		} else {
 			self.new_group(GroupType::Broken);
 			self.current_node.borrow_mut().set_arg(&format!("figure={}", arg));
 		}
 	}
 	fn cmd_figure_close(&mut self) {
+		self.end_group(GroupType::Paragraph);
 		self.end_group(GroupType::Figure);
 		self.new_group(GroupType::Paragraph);
 	}

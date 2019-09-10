@@ -82,7 +82,7 @@ impl BBCodeTokenizer {
 	fn parse_parabreak(&mut self, character: char) {
 		match character {
 			'\t' => {
-				self.set_new_instruction(Instruction::Parabreak);
+				self.set_new_instruction(Instruction::Parabreak("\n\t".to_string()));
 				self.mode = ReadMode::ParseText;
 			},
 			'\n' | '\r' => {
@@ -106,7 +106,7 @@ impl BBCodeTokenizer {
 			},
 			' ' => {},
 			_ => {
-				self.set_new_instruction(Instruction::Parabreak);
+				self.set_new_instruction(Instruction::Parabreak("\n\n".to_string()));
 				self.mode = ReadMode::ParseText;
 				self.parse_text(character);
 			}

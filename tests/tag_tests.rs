@@ -249,6 +249,14 @@ fn pre() {
         "<pre>To be, or not to be.</pre>");
 }
 #[test]
+fn pre_formatting() {
+    assert_eq!(bbcode_to_html("[pre]To be, or 
+
+        not\t to 
+        \tbe.[/pre]"), 
+        "<pre>To be, or \n\nnot\t to \n\tbe.</pre>");
+}
+#[test]
 fn pre_interrupt() {
     assert_eq!(bbcode_to_html("That is the [pre]To be, or not to be.[/pre] question."), 
         "<p>That is the </p><pre>To be, or not to be.</pre><p> question.</p>");
@@ -301,17 +309,22 @@ fn codeblock_adjacent_paragraph() {
         That is the question."), 
         "<pre>To be, or not to be.</pre><p>That is the question.</p>");
 }
+#[test]
+fn codeblock_bbcode() {
+    assert_eq!(bbcode_to_html("[codeblock]To be, or [b]not[/b] to be.[/codeblock]"), 
+        "<pre>To be, or [b]not[/b] to be.</pre>");
+}
 
 /*-- FIGURE --*/
 #[test]
 fn figure_right_arg() {
     assert_eq!(bbcode_to_html("[figure=right]To be, or not to be.[/figure]"), 
-        "<figure class=\"figure-right\">To be, or not to be.</figure>");
+        "<figure class=\"figure-right\"><p>To be, or not to be.</p></figure>");
 }
 #[test]
 fn figure_left_arg() {
     assert_eq!(bbcode_to_html("[figure=left]To be, or not to be.[/figure]"), 
-        "<figure class=\"figure-left\">To be, or not to be.</figure>");
+        "<figure class=\"figure-left\"><p>To be, or not to be.</p></figure>");
 }
 #[test]
 fn figure_bad_arg() {
@@ -321,17 +334,17 @@ fn figure_bad_arg() {
 #[test]
 fn figure_interrupt() {
     assert_eq!(bbcode_to_html("That is the [figure=right]To be, or not to be.[/figure] question."), 
-        "<p>That is the </p><figure class=\"figure-right\">To be, or not to be.</figure><p> question.</p>");
+        "<p>That is the </p><figure class=\"figure-right\"><p>To be, or not to be.</p></figure><p> question.</p>");
 }
 #[test]
 fn figure_adjacent() {
     assert_eq!(bbcode_to_html("[figure=right]To be, or not to be.[/figure][figure=right]That is the question.[/figure]"), 
-        "<figure class=\"figure-right\">To be, or not to be.</figure><figure class=\"figure-right\">That is the question.</figure>");
+        "<figure class=\"figure-right\"><p>To be, or not to be.</p></figure><figure class=\"figure-right\"><p>That is the question.</p></figure>");
 }
 #[test]
 fn figure_adjacent_paragraph() {
     assert_eq!(bbcode_to_html("[figure=right]To be, or not to be.[/figure]
 
         That is the question."), 
-        "<figure class=\"figure-right\">To be, or not to be.</figure><p>That is the question.</p>");
+        "<figure class=\"figure-right\"><p>To be, or not to be.</p></figure><p>That is the question.</p>");
 }

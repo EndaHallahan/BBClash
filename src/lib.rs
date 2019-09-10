@@ -138,7 +138,7 @@ pub enum Instruction {
 	Null,
 	Tag(String, Option<String>), 
 	Text(String),
-	Parabreak,
+	Parabreak(String),
 	Linebreak,
 	Scenebreak
 }

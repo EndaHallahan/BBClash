@@ -297,7 +297,7 @@ Pre creates a block of preformatted text. Text will be displayed ina  monospaced
 
 ## Code and Codeblock
 
-Code and codeblock define areas of computer code or markup that should not be formatted. Code defines a single line of text; codeblock allows for multiple lines. Codeblock also allows an argument to define the language of its contents intended for use with syntax highlighting.
+Code and codeblock define areas of computer code or markup that should not be formatted. Code defines a single line of text; codeblock allows for multiple lines. Codeblock also allows an argument to define the language of its contents intended for use with syntax highlighting. BBCode tags in Code or Codeblock should be ignored.
 
 ### Tag:
 	`[code]{text content}[/code]`
