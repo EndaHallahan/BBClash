@@ -280,6 +280,11 @@ fn code() {
     assert_eq!(bbcode_to_html("[code]To be, or not to be.[/code]"), 
         "<p><code>To be, or not to be.</code></p>");
 }
+#[test]
+fn code_bbcode() {
+    assert_eq!(bbcode_to_html("[code]To be, or [b]not[/b] to be.[/code]"), 
+        "<p><code>To be, or [b]not[/b] to be.</code></p>");
+}
 
 /*-- CODEBLOCK --*/
 #[test]

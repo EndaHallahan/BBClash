@@ -6,6 +6,8 @@ A robust, opinionated, performance-focused BBCode to HTML parser and compiler.
 
 BBClash is the open-source version of the BBCode compiler being built for [Penclash](https://endahallahan.github.io/Penclash-Splash-Site/). Unlike most implementations, BBClash is **not RegEx-based.** It functions like a compiler, tokenizing, lexing, and then constructing compliant HTML from an AST-like object. This makes it robust and good at handling even improperly-formatted input. 
 
+Our BBCode specification can be found [here](https://github.com/EndaHallahan/BBClash/blob/master/Spec.md).
+
 ## General Usage:
 
 ```

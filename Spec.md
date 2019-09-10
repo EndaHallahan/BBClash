@@ -1,4 +1,4 @@
-# BBClash Spec V0.1.0
+# BBClash Spec V0.1.1
 
 This document aims to create a standard specification for basic Penclash-flavoured BBCode.
 
