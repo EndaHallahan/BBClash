@@ -50,6 +50,8 @@ impl HTMLConstructor {
 			GroupType::Scenebreak => {self.output_string.push_str("<br><br><br>")},
 			GroupType::Center => {self.output_string.push_str("<div class=\"center\">")},
 			GroupType::Right => {self.output_string.push_str("<div class=\"right\">")},
+			GroupType::Pre => {self.output_string.push_str("<pre>")},
+			GroupType::Code => {self.output_string.push_str("<code>")},
 			GroupType::Header => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<h{}>", arg));
@@ -94,6 +96,13 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<span class=\"footnote\">"));
 				}
 			},
+			GroupType::CodeBlock => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<pre data-language=\"{}\">", arg));
+				} else {
+					self.output_string.push_str(&format!("<pre>"));
+				}
+			},
 			_ => return
 		};
 	}
@@ -111,11 +120,15 @@ impl HTMLConstructor {
 			GroupType::Strikethrough => {self.output_string.push_str("</s>")},
 			GroupType::Url => {self.output_string.push_str("</a>")},
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
+			GroupType::Code => {self.output_string.push_str("</code>")},
 			GroupType::Header => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("</h{}>", arg));
 				}
 			},
+			GroupType::Pre |
+			GroupType::CodeBlock
+				=> {self.output_string.push_str("</pre>")},
 			GroupType::Underline |
 			GroupType::Smallcaps |
 			GroupType::Monospace |

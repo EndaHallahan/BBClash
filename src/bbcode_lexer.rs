@@ -276,6 +276,15 @@ impl BBCodeLexer {
 		self.new_group(GroupType::Paragraph);
 	}
 
+	fn cmd_pre_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Pre);
+	}
+	fn cmd_pre_close(&mut self) {
+		self.end_group(GroupType::Pre);
+		self.new_group(GroupType::Paragraph);
+	}
+
 	fn cmd_colour_open(&mut self, arg: &String) {
 		if arg.starts_with("#") && arg.len() == 7 || arg.len() == 4 
 		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit()) {
@@ -474,6 +483,27 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Footnote);
 	}
 
+	fn cmd_code_open(&mut self) {
+		self.new_group(GroupType::Code);
+	}
+	fn cmd_code_close(&mut self) {
+		self.end_group(GroupType::Code);
+	}
+
+	fn cmd_codeblock_bare_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::CodeBlock);
+	}
+	fn cmd_codeblock_open(&mut self, arg: &String) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::CodeBlock);
+		self.current_node.borrow_mut().set_arg(arg);
+	}
+	fn cmd_codeblock_close(&mut self) {
+		self.end_group(GroupType::CodeBlock);
+		self.new_group(GroupType::Paragraph);
+	}
+
 	fn cmd_hr(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Hr);
@@ -541,6 +571,10 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/url" => BBCodeLexer::cmd_url_close,
 	"quote" => BBCodeLexer::cmd_quote_open,
 	"/quote" => BBCodeLexer::cmd_quote_close,
+	"code" => BBCodeLexer::cmd_code_open,
+	"/code" => BBCodeLexer::cmd_code_close,
+	"codeblock" => BBCodeLexer::cmd_codeblock_bare_open,
+	"/codeblock" => BBCodeLexer::cmd_codeblock_close,
 	"img" => BBCodeLexer::cmd_img_open,
 	"/img" => BBCodeLexer::cmd_img_close,
 	"h1" => BBCodeLexer::cmd_h1_open,
@@ -555,6 +589,8 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/h5" => BBCodeLexer::cmd_h5_close,
 	"h6" => BBCodeLexer::cmd_h6_open,
 	"/h6" => BBCodeLexer::cmd_h6_close,
+	"pre" => BBCodeLexer::cmd_pre_open,
+	"/pre" => BBCodeLexer::cmd_pre_close,
 	"footnote" => BBCodeLexer::cmd_footnote_bare_open,
 	"/footnote" => BBCodeLexer::cmd_footnote_close,
 };
@@ -566,6 +602,7 @@ static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_
 	"opacity" => BBCodeLexer::cmd_opacity_open,
 	"size" => BBCodeLexer::cmd_size_open,
 	"quote" => BBCodeLexer::cmd_quote_arg_open,
+	"codeblock" => BBCodeLexer::cmd_codeblock_open,
 	"footnote" => BBCodeLexer::cmd_footnote_open,
 };
 /// Static compile-time set of valid HTML web colours.

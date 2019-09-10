@@ -241,3 +241,63 @@ fn footnote_arg() {
     assert_eq!(bbcode_to_html("To be[footnote=*]Or not to be[/footnote]. That is the question."), 
         "<p>To be<span class=\"footnote\" data-symbol=\"*\">Or not to be</span>. That is the question.</p>");
 }
+
+/*-- PRE --*/
+#[test]
+fn pre() {
+    assert_eq!(bbcode_to_html("[pre]To be, or not to be.[/pre]"), 
+        "<pre>To be, or not to be.</pre>");
+}
+#[test]
+fn pre_interrupt() {
+    assert_eq!(bbcode_to_html("That is the [pre]To be, or not to be.[/pre] question."), 
+        "<p>That is the </p><pre>To be, or not to be.</pre><p> question.</p>");
+}
+#[test]
+fn pre_adjacent() {
+    assert_eq!(bbcode_to_html("[pre]To be, or not to be.[/pre][pre]That is the question.[/pre]"), 
+        "<pre>To be, or not to be.</pre><pre>That is the question.</pre>");
+}
+#[test]
+fn pre_adjacent_paragraph() {
+    assert_eq!(bbcode_to_html("[pre]To be, or not to be.[/pre]
+
+        That is the question."), 
+        "<pre>To be, or not to be.</pre><p>That is the question.</p>");
+}
+
+/*-- CODE --*/
+#[test]
+fn code() {
+    assert_eq!(bbcode_to_html("[code]To be, or not to be.[/code]"), 
+        "<p><code>To be, or not to be.</code></p>");
+}
+
+/*-- CODEBLOCK --*/
+#[test]
+fn codeblock_no_arg() {
+    assert_eq!(bbcode_to_html("[codeblock]To be, or not to be.[/codeblock]"), 
+        "<pre>To be, or not to be.</pre>");
+}
+#[test]
+fn codeblock_arg() {
+    assert_eq!(bbcode_to_html("[codeblock=rust]To be, or not to be.[/codeblock]"), 
+        "<pre data-language=\"rust\">To be, or not to be.</pre>");
+}
+#[test]
+fn codeblock_interrupt() {
+    assert_eq!(bbcode_to_html("That is the [codeblock]To be, or not to be.[/codeblock] question."), 
+        "<p>That is the </p><pre>To be, or not to be.</pre><p> question.</p>");
+}
+#[test]
+fn codeblock_adjacent() {
+    assert_eq!(bbcode_to_html("[codeblock]To be, or not to be.[/codeblock][codeblock]That is the question.[/codeblock]"), 
+        "<pre>To be, or not to be.</pre><pre>That is the question.</pre>");
+}
+#[test]
+fn codeblock_adjacent_paragraph() {
+    assert_eq!(bbcode_to_html("[codeblock]To be, or not to be.[/codeblock]
+
+        That is the question."), 
+        "<pre>To be, or not to be.</pre><p>That is the question.</p>");
+}
