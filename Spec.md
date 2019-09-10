@@ -404,6 +404,7 @@ Embed embeds content from other sources. This should be handled by the end appli
 ### Yields:
 	`<div class="embed" data-content="{content address}"></div>`
 
+
 ## Horizontal Rule
 
 Horizontal Rule is a void tag that inserts a horizontal rule.

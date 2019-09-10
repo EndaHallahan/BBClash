@@ -221,6 +221,61 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Spoiler);
 	}
 
+	fn cmd_h1_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Header);
+		self.current_node.borrow_mut().set_arg(&"1".to_string());
+	}
+	fn cmd_h1_close(&mut self) {
+		self.end_group(GroupType::Header);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_h2_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Header);
+		self.current_node.borrow_mut().set_arg(&"2".to_string());
+	}
+	fn cmd_h2_close(&mut self) {
+		self.end_group(GroupType::Header);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_h3_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Header);
+		self.current_node.borrow_mut().set_arg(&"3".to_string());
+	}
+	fn cmd_h3_close(&mut self) {
+		self.end_group(GroupType::Header);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_h4_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Header);
+		self.current_node.borrow_mut().set_arg(&"4".to_string());
+	}
+	fn cmd_h4_close(&mut self) {
+		self.end_group(GroupType::Header);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_h5_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Header);
+		self.current_node.borrow_mut().set_arg(&"5".to_string());
+	}
+	fn cmd_h5_close(&mut self) {
+		self.end_group(GroupType::Header);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_h6_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Header);
+		self.current_node.borrow_mut().set_arg(&"6".to_string());
+	}
+	fn cmd_h6_close(&mut self) {
+		self.end_group(GroupType::Header);
+		self.new_group(GroupType::Paragraph);
+	}
+
 	fn cmd_colour_open(&mut self, arg: &String) {
 		if arg.starts_with("#") && arg.len() == 7 || arg.len() == 4 
 		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit()) {
@@ -393,10 +448,12 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_quote_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Quote);
 		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_quote_arg_open(&mut self, arg: &String) {
+		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Quote);
 		self.current_node.borrow_mut().set_arg(arg);
 		self.new_group(GroupType::Paragraph);
@@ -407,9 +464,11 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_hr(&mut self) {
+		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Hr);
 		self.current_node.borrow_mut().set_void(true);
 		self.end_group(GroupType::Hr);
+		self.new_group(GroupType::Paragraph);
 	}
 
 	fn cmd_center_open(&mut self) {
@@ -473,6 +532,18 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/quote" => BBCodeLexer::cmd_quote_close,
 	"img" => BBCodeLexer::cmd_img_open,
 	"/img" => BBCodeLexer::cmd_img_close,
+	"h1" => BBCodeLexer::cmd_h1_open,
+	"/h1" => BBCodeLexer::cmd_h1_close,
+	"h2" => BBCodeLexer::cmd_h2_open,
+	"/h2" => BBCodeLexer::cmd_h2_close,
+	"h3" => BBCodeLexer::cmd_h3_open,
+	"/h3" => BBCodeLexer::cmd_h3_close,
+	"h4" => BBCodeLexer::cmd_h4_open,
+	"/h4" => BBCodeLexer::cmd_h4_close,
+	"h5" => BBCodeLexer::cmd_h5_open,
+	"/h5" => BBCodeLexer::cmd_h5_close,
+	"h6" => BBCodeLexer::cmd_h6_open,
+	"/h6" => BBCodeLexer::cmd_h6_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {

@@ -53,7 +53,7 @@ fn empty_tag() {
 #[test]
 fn void_tag() {
 	assert_eq!(bbcode_to_html("I have an hr[hr] tag!"), 
-		"<p>I have an hr<hr> tag!</p>");
+		"<p>I have an hr</p><hr><p> tag!</p>");
 }
 #[test]
 fn multiple_opening_tags() {

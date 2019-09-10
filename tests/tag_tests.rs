@@ -159,12 +159,12 @@ fn image_bad_arg() {
 #[test]
 fn quote_no_argument() {
     assert_eq!(bbcode_to_html("[quote]To be, or not to be.[/quote]"), 
-        "<p><blockquote><p>To be, or not to be.</p></blockquote></p>");
+        "<blockquote><p>To be, or not to be.</p></blockquote>");
 }
 #[test]
 fn quote_argument() {
     assert_eq!(bbcode_to_html("[quote=Shakespeare]To be, or not to be.[/quote]"), 
-        "<p><blockquote data-author=\"Shakespeare\"><p>To be, or not to be.</p></blockquote></p>");
+        "<blockquote data-author=\"Shakespeare\"><p>To be, or not to be.</p></blockquote>");
 }
 #[test]
 fn quote_multiline() {
@@ -173,6 +173,59 @@ fn quote_multiline() {
         That is the question.
 
         [/quote]"), 
-        "<p><blockquote><p>To be, or not to be.</p><p>That is the question.</p></blockquote></p>");
+        "<blockquote><p>To be, or not to be.</p><p>That is the question.</p></blockquote>");
 }
 
+/*-- HEADER --*/
+#[test]
+fn h1() {
+    assert_eq!(bbcode_to_html("[h1]To be, or not to be.[/h1]"), 
+        "<h1>To be, or not to be.</h1>");
+}
+#[test]
+fn h2() {
+    assert_eq!(bbcode_to_html("[h2]To be, or not to be.[/h2]"), 
+        "<h2>To be, or not to be.</h2>");
+}
+#[test]
+fn h3() {
+    assert_eq!(bbcode_to_html("[h3]To be, or not to be.[/h3]"), 
+        "<h3>To be, or not to be.</h3>");
+}
+#[test]
+fn h4() {
+    assert_eq!(bbcode_to_html("[h4]To be, or not to be.[/h4]"), 
+        "<h4>To be, or not to be.</h4>");
+}
+#[test]
+fn h5() {
+    assert_eq!(bbcode_to_html("[h5]To be, or not to be.[/h5]"), 
+        "<h5>To be, or not to be.</h5>");
+}
+#[test]
+fn h6() {
+    assert_eq!(bbcode_to_html("[h6]To be, or not to be.[/h6]"), 
+        "<h6>To be, or not to be.</h6>");
+}
+#[test]
+fn header_interrupt() {
+    assert_eq!(bbcode_to_html("That is the [h1]To be, or not to be.[/h1] question."), 
+        "<p>That is the </p><h1>To be, or not to be.</h1><p> question.</p>");
+}
+#[test]
+fn header_adjacent() {
+    assert_eq!(bbcode_to_html("[h1]To be, or not to be.[/h1][h2]That is the question.[/h2]"), 
+        "<h1>To be, or not to be.</h1><h2>That is the question.</h2>");
+}
+#[test]
+fn header_adjacent_paragraph() {
+    assert_eq!(bbcode_to_html("[h1]To be, or not to be.[/h1]
+
+        That is the question."), 
+        "<h1>To be, or not to be.</h1><p>That is the question.</p>");
+}
+#[test]
+fn bad_header_level() {
+    assert_eq!(bbcode_to_html("[h7]To be, or not to be.[/h7]"), 
+        "<p>[h7]To be, or not to be.[/h7]</p>");
+}

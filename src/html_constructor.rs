@@ -50,6 +50,11 @@ impl HTMLConstructor {
 			GroupType::Scenebreak => {self.output_string.push_str("<br><br><br>")},
 			GroupType::Center => {self.output_string.push_str("<div class=\"center\">")},
 			GroupType::Right => {self.output_string.push_str("<div class=\"right\">")},
+			GroupType::Header => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<h{}>", arg));
+				}
+			},
 			GroupType::Colour => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<span style=\"color:{};\">", arg));
@@ -99,6 +104,11 @@ impl HTMLConstructor {
 			GroupType::Strikethrough => {self.output_string.push_str("</s>")},
 			GroupType::Url => {self.output_string.push_str("</a>")},
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
+			GroupType::Header => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("</h{}>", arg));
+				}
+			},
 			GroupType::Underline |
 			GroupType::Smallcaps |
 			GroupType::Monospace |

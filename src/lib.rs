@@ -173,7 +173,7 @@ pub enum GroupType {
 	//Indent,
 	//Pre,
 	//PreLine,
-	//Header,
+	Header,
 	//Figure,
 	//List,
 	//Embed,
