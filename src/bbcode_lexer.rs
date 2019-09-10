@@ -463,6 +463,17 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Quote);
 	}
 
+	fn cmd_footnote_bare_open(&mut self) {
+		self.new_group(GroupType::Footnote);
+	}
+	fn cmd_footnote_open(&mut self, arg: &String) {
+		self.new_group(GroupType::Footnote);
+		self.current_node.borrow_mut().set_arg(arg);
+	}
+	fn cmd_footnote_close(&mut self) {
+		self.end_group(GroupType::Footnote);
+	}
+
 	fn cmd_hr(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Hr);
@@ -544,6 +555,8 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/h5" => BBCodeLexer::cmd_h5_close,
 	"h6" => BBCodeLexer::cmd_h6_open,
 	"/h6" => BBCodeLexer::cmd_h6_close,
+	"footnote" => BBCodeLexer::cmd_footnote_bare_open,
+	"/footnote" => BBCodeLexer::cmd_footnote_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
@@ -553,6 +566,7 @@ static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_
 	"opacity" => BBCodeLexer::cmd_opacity_open,
 	"size" => BBCodeLexer::cmd_size_open,
 	"quote" => BBCodeLexer::cmd_quote_arg_open,
+	"footnote" => BBCodeLexer::cmd_footnote_open,
 };
 /// Static compile-time set of valid HTML web colours.
 static WEB_COLOURS: phf::Set<&'static str> = phf_set! {

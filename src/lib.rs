@@ -169,7 +169,7 @@ pub enum GroupType {
 	Right,
 	Image,
 	Quote,
-	//Footnote,
+	Footnote,
 	//Indent,
 	//Pre,
 	//PreLine,

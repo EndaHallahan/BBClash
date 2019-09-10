@@ -87,6 +87,13 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<blockquote>"));
 				}
 			},
+			GroupType::Footnote => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<span class=\"footnote\" data-symbol=\"{}\">", arg));
+				} else {
+					self.output_string.push_str(&format!("<span class=\"footnote\">"));
+				}
+			},
 			_ => return
 		};
 	}
@@ -115,7 +122,8 @@ impl HTMLConstructor {
 			GroupType::Spoiler |
 			GroupType::Colour |
 			GroupType::Opacity |
-			GroupType::Size
+			GroupType::Size |
+			GroupType::Footnote
 				=> {self.output_string.push_str("</span>")},
 			GroupType::Center |
 			GroupType::Right

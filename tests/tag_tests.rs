@@ -229,3 +229,15 @@ fn bad_header_level() {
     assert_eq!(bbcode_to_html("[h7]To be, or not to be.[/h7]"), 
         "<p>[h7]To be, or not to be.[/h7]</p>");
 }
+
+/*-- FOOTNOTE --*/
+#[test]
+fn footnote_no_arg() {
+    assert_eq!(bbcode_to_html("To be[footnote]Or not to be[/footnote]. That is the question."), 
+        "<p>To be<span class=\"footnote\">Or not to be</span>. That is the question.</p>");
+}
+#[test]
+fn footnote_arg() {
+    assert_eq!(bbcode_to_html("To be[footnote=*]Or not to be[/footnote]. That is the question."), 
+        "<p>To be<span class=\"footnote\" data-symbol=\"*\">Or not to be</span>. That is the question.</p>");
+}
