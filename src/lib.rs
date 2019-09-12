@@ -46,10 +46,6 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 	let mut lexer = BBCodeLexer::new();
 	let mut constructor = HTMLConstructor::new(input.len());
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
-	// Debug code:
-	/*for node in out.descendants() {
-		println!("{:?}", node.borrow());
-	}*/
 }
 
 /// A single element of a BBCode AST.
@@ -175,12 +171,14 @@ pub enum GroupType {
 	//PreLine,
 	Header,
 	Figure,
-	//List,
+	List,
+	ListItem,
 	//Embed,
 	Code,
 	CodeBlock,
 	//Icon,
 	//Math,
+	//MathBlock,
 	//Table,
 	//TableRow,
 	//TableItem,

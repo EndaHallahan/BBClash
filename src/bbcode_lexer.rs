@@ -93,9 +93,11 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().add_text(&"\n\n\n".to_string());
 						self.end_group(GroupType::Text);
 					} else {
+						self.end_group(GroupType::Paragraph);
 						self.new_group(GroupType::Scenebreak);
 						self.current_node.borrow_mut().set_void(true);
 						self.end_group(GroupType::Scenebreak);
+						self.new_group(GroupType::Paragraph);
 					}
 				}
 				_ => {}
@@ -109,12 +111,24 @@ impl BBCodeLexer {
 	}
 	/// Moves current working node up to the current node's parent.
 	fn end_group(&mut self, ele_type: GroupType) {
+		if let Some(mut kid) = self.current_node.last_child() {
+			if kid.borrow().ele_type() == &GroupType::Br {
+				kid.detach();
+			}
+		}
 		if self.current_node.borrow_mut().ele_type() == &ele_type {
 			match self.current_node.parent() {
 				None => {},
 				Some(parent) => {
-					if !self.current_node.has_children() 
-					&& !self.current_node.borrow().has_text() 
+					if !self.current_node.has_children()
+					&& (
+						!self.ignore_formatting &&
+						if let Some(text) = self.current_node.borrow().text_contents() {
+							text.trim().len() == 0
+						} else {
+							true
+						}
+					)
 					&& !self.current_node.borrow().is_void() {
 						self.current_node.detach();
 					}
@@ -129,6 +143,12 @@ impl BBCodeLexer {
 				match my_type {
 					GroupType::Paragraph if ele_type != GroupType::Paragraph => {
 						go = false;
+						if !self.current_node.has_children() {
+							self.current_node.detach();
+						}
+					},
+					GroupType::List if ele_type != GroupType::List => {
+						go = false;
 					},
 					GroupType::Document if ele_type != GroupType::Document => {
 						go = false;
@@ -137,15 +157,25 @@ impl BBCodeLexer {
 						if my_type == ele_type {
 							go = false;
 						} else {
-							group_stack.push(my_type);
+							group_stack.push(GroupShorthand {
+								ele_type: my_type, 
+								arg: self.current_node.borrow_mut().argument().clone()
+							});
 						}
 						match self.current_node.parent() {
 							None => {
 								go = false;
 							},
 							Some(parent) => {
-								if !self.current_node.has_children() 
-								&& !self.current_node.borrow().has_text() 
+								if !self.current_node.has_children()
+								&& (
+									!self.ignore_formatting &&
+									if let Some(text) = self.current_node.borrow().text_contents() {
+										text.trim().len() == 0
+									} else {
+										true
+									}
+								)
 								&& !self.current_node.borrow().is_void() {
 									self.current_node.detach();
 								}
@@ -156,7 +186,11 @@ impl BBCodeLexer {
 				}
 			}
 			while group_stack.len() > 0 {
-				self.new_group(group_stack.pop().unwrap().clone());
+				let group = group_stack.pop().unwrap();
+				self.new_group(group.ele_type.clone());
+				if let Some(arg) = group.arg {
+					self.current_node.borrow_mut().set_arg(&arg);
+				}
 			}
 		}	
 	}
@@ -566,6 +600,31 @@ impl BBCodeLexer {
 		self.new_group(GroupType::Paragraph);
 	}
 
+	fn cmd_list_bare_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::List);
+	}
+	fn cmd_list_open(&mut self, arg: &String) {
+		self.end_group(GroupType::Paragraph);
+		if LIST_TYPES.contains(arg as &str) {
+			self.new_group(GroupType::List);
+			self.current_node.borrow_mut().set_arg(arg);
+		} else {
+			self.new_group(GroupType::Broken);
+			self.current_node.borrow_mut().set_arg(&format!("list={}", arg));
+		}
+	}
+	fn cmd_list_close(&mut self) {
+		self.end_group(GroupType::List);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_list_item(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.end_group(GroupType::ListItem);
+		self.new_group(GroupType::ListItem);
+		self.new_group(GroupType::Paragraph);
+	}
+
 	fn cmd_hr(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Hr);
@@ -656,6 +715,9 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"footnote" => BBCodeLexer::cmd_footnote_bare_open,
 	"/footnote" => BBCodeLexer::cmd_footnote_close,
 	"/figure" => BBCodeLexer::cmd_figure_close,
+	"list" => BBCodeLexer::cmd_list_bare_open,
+	"/list" => BBCodeLexer::cmd_list_close,
+	"*" => BBCodeLexer::cmd_list_item,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
@@ -668,6 +730,7 @@ static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_
 	"codeblock" => BBCodeLexer::cmd_codeblock_open,
 	"footnote" => BBCodeLexer::cmd_footnote_open,
 	"figure" => BBCodeLexer::cmd_figure_open,
+	"list" => BBCodeLexer::cmd_list_open,
 };
 /// Static compile-time set of valid HTML web colours.
 static WEB_COLOURS: phf::Set<&'static str> = phf_set! {
@@ -985,3 +1048,20 @@ static ACCEPTED_IMAGE_TYPES: phf::Set<&'static str> = phf_set! {
 	//".svg", Dangerous!
 	".webp",
 };
+
+/// Static compile-time set of accepted list types.
+static LIST_TYPES: phf::Set<&'static str> = phf_set! {
+	"1",
+	"a",
+	"A",
+	"i",
+	"I",
+	"circle",
+	"square",
+	"none",
+};
+
+pub struct GroupShorthand {
+	pub ele_type: GroupType,
+	pub arg: Option<String>
+}

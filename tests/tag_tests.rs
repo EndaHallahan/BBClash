@@ -353,3 +353,50 @@ fn figure_adjacent_paragraph() {
         That is the question."), 
         "<figure class=\"figure-right\"><p>To be, or not to be.</p></figure><p>That is the question.</p>");
 }
+
+/*-- LIST --*/
+#[test]
+fn simple_list() {
+    assert_eq!(bbcode_to_html("[list][*]To be[*]or not to be[/list]"), 
+        "<ul><li><p>To be</p></li><li><p>or not to be</p></li></ul>");
+}
+#[test]
+fn expanded_simple_list() {
+    assert_eq!(bbcode_to_html("
+        [list]
+            [*]To be
+            [*]or not to be
+        [/list]"), 
+        "<ul><li><p>To be</p></li><li><p>or not to be</p></li></ul>");
+}
+#[test]
+fn styled_ordered_list() {
+    assert_eq!(bbcode_to_html("
+        [list=1]
+            [*]To be
+            [*]or not to be
+        [/list]"), 
+        "<ol type=\"1\"><li><p>To be</p></li><li><p>or not to be</p></li></ol>");
+}
+#[test]
+fn styled_unordered_list() {
+    assert_eq!(bbcode_to_html("
+        [list=circle]
+            [*]To be
+            [*]or not to be
+        [/list]"), 
+        "<ul style=\"list-style-type:circle;\"><li><p>To be</p></li><li><p>or not to be</p></li></ul>");
+}
+#[test]
+fn nested_simple_list() {
+    assert_eq!(bbcode_to_html("
+        [list]
+            [*]To be
+            [*]or not to be
+            [*]That [list]
+                [*]is the
+                [*]question
+                [/list]
+        [/list]"), 
+        "<ul><li><p>To be</p></li><li><p>or not to be</p></li><li><p>That </p><ul><li><p>is the</p></li><li><p>question</p></li></ul></li></ul>");
+}

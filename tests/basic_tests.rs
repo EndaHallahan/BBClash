@@ -6,6 +6,13 @@ fn empty_string() {
     	"");
 }
 #[test]
+fn empty_para_string() {
+    assert_eq!(bbcode_to_html("
+
+    "), 
+    	"");
+}
+#[test]
 fn no_tags() {
     assert_eq!(bbcode_to_html("I have no tags!"), 
     	"<p>I have no tags!</p>");
@@ -81,6 +88,12 @@ fn single_newline() {
 		"<p>I have a single<br>newline!</p>");
 }
 #[test]
+fn single_newline_paragraph() {
+	assert_eq!(bbcode_to_html("
+		"), 
+		"");
+}
+#[test]
 fn double_newline() {
 	assert_eq!(bbcode_to_html("I have a double\n\n newline!"), 
 		"<p>I have a double</p><p>newline!</p>");
@@ -88,7 +101,7 @@ fn double_newline() {
 #[test]
 fn triple_newline() {
 	assert_eq!(bbcode_to_html("I have a triple\n\n\n newline!"), 
-		"<p>I have a triple<br><br><br> newline!</p>");
+		"<p>I have a triple</p><br><br><br><p> newline!</p>");
 }
 #[test]
 fn not_a_tag() {

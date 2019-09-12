@@ -108,6 +108,22 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<pre>"));
 				}
 			},
+			GroupType::List => {
+				if let Some(arg) = element.argument() {
+					match arg as &str {
+						"1" | "a" | "A" | "i" | "I" => {
+							self.output_string.push_str(&format!("<ol type=\"{}\">", arg));
+						},
+						"circle" | "square" | "none" => {
+							self.output_string.push_str(&format!("<ul style=\"list-style-type:{};\">", arg));
+						},
+						_ => {self.output_string.push_str("<ul>")}
+					}
+				} else {
+					self.output_string.push_str("<ul>")
+				}
+			},
+			GroupType::ListItem => {self.output_string.push_str("<li>")},
 			_ => return
 		};
 	}
@@ -127,6 +143,18 @@ impl HTMLConstructor {
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
 			GroupType::Code => {self.output_string.push_str("</code>")},
 			GroupType::Figure => {self.output_string.push_str("</figure>")},
+			GroupType::List => {
+				if let Some(arg) = element.argument() {
+					match arg as &str{
+						"1" | "a" | "A" | "i" | "I" => {self.output_string.push_str("</ol>")},
+						"circle" | "square" | "none" => {self.output_string.push_str("</ul>")},
+						_ => {self.output_string.push_str("</ul>")}
+					}
+				} else {
+					self.output_string.push_str("</ul>")
+				}
+			},
+			GroupType::ListItem => {self.output_string.push_str("</li>")},
 			GroupType::Header => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("</h{}>", arg));
