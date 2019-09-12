@@ -400,3 +400,20 @@ fn nested_simple_list() {
         [/list]"), 
         "<ul><li><p>To be</p></li><li><p>or not to be</p></li><li><p>That </p><ul><li><p>is the</p></li><li><p>question</p></li></ul></li></ul>");
 }
+
+/*-- TABLE --*/
+#[test]
+fn table() {
+    assert_eq!(bbcode_to_html("
+        [table]
+        [tr]
+            [th]To be[/th]
+            [th]or not to be[/th]
+        [/tr]
+        [tr]
+            [td]that is[/td]
+            [td]the question[/td]
+        [/tr]
+    [/table]"), 
+        "<table><tr><th><p>To be</p></th><th><p>or not to be</p></th></tr><tr><td><p>that is</p></td><td><p>the question</p></td></tr></table>");
+}

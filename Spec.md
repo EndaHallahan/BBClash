@@ -380,18 +380,17 @@ List and its subordinate tag List Item create lists. Lists can be nested. Lists 
 
 ## Table, Table Row, Table Data, and Table Header
 
-Table and its subordinate tags create tables. Table Header and Table Data tags can take a single optional argument for the number of extra columns they should span.
+Table and its subordinate tags create tables.
 
 #### Tag:
 	[table]
 		[tr]
 			[th]{table header 1}[/th]
-			[th=2]{table header 2}[/th]
+			[th]{table header 2}[/th]
 		[/tr]
 		[tr]
 			[td]{table content 1}[/td]
 			[td]{table content 2}[/td]
-			[td]{table content 3}[/td]
 		[/tr]
 	[/table]
 
@@ -399,12 +398,11 @@ Table and its subordinate tags create tables. Table Header and Table Data tags c
 	<table>
 		<tr>
 			<th>{table header 1}</th>
-			<th colspan="2">{table header 2}</th>
+			<th>{table header 2}</th>
 		</tr>
 		<tr>
 			<td>{table content 1}</td>
 			<td>{table content 2}</td>
-			<td>{table content 3}</td>
 		</tr>
 	</table>
 

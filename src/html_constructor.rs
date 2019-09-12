@@ -52,6 +52,10 @@ impl HTMLConstructor {
 			GroupType::Right => {self.output_string.push_str("<div class=\"right\">")},
 			GroupType::Pre => {self.output_string.push_str("<pre>")},
 			GroupType::Code => {self.output_string.push_str("<code>")},
+			GroupType::Table => {self.output_string.push_str("<table>")},
+			GroupType::TableRow => {self.output_string.push_str("<tr>")},
+			GroupType::TableHeader => {self.output_string.push_str("<th>")},
+			GroupType::TableData => {self.output_string.push_str("<td>")},
 			GroupType::Header => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<h{}>", arg));
@@ -143,6 +147,10 @@ impl HTMLConstructor {
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
 			GroupType::Code => {self.output_string.push_str("</code>")},
 			GroupType::Figure => {self.output_string.push_str("</figure>")},
+			GroupType::Table => {self.output_string.push_str("</table>")},
+			GroupType::TableRow => {self.output_string.push_str("</tr>")},
+			GroupType::TableHeader => {self.output_string.push_str("</th>")},
+			GroupType::TableData => {self.output_string.push_str("</td>")},
 			GroupType::List => {
 				if let Some(arg) = element.argument() {
 					match arg as &str{

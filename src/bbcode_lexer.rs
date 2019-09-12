@@ -11,16 +11,19 @@ pub struct BBCodeLexer {
 	next_text_as_arg: Option<fn(&mut BBCodeLexer, &String)>,
 	ignore_tags: Option<&'static str>,
 	ignore_formatting: bool,
+	linebreaks_allowed: bool
 }
 impl BBCodeLexer {
 	/// Creates a new BBCodeLexer.
 	pub fn new() -> BBCodeLexer {
-		let anchor = Node::new(ASTElement::new(GroupType::Anchor));
-		let current_node = Node::new(ASTElement::new(GroupType::Document));
-		let next_text_as_arg = None;
-		let ignore_tags = None;
-		let ignore_formatting = false;
-		BBCodeLexer{current_node, anchor, next_text_as_arg, ignore_tags, ignore_formatting}
+		BBCodeLexer {
+			anchor: Node::new(ASTElement::new(GroupType::Anchor)),
+			current_node: Node::new(ASTElement::new(GroupType::Document)),
+			next_text_as_arg: None,
+			ignore_tags: None,
+			ignore_formatting: false,
+			linebreaks_allowed: true,
+		}
 	}
 	/// Lexes a vector of Instructions.
 	pub fn lex(&mut self, instructions: &Vec<Instruction>) -> Node<ASTElement> {
@@ -82,9 +85,11 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().add_text(&"\n".to_string());
 						self.end_group(GroupType::Text);
 					} else {
-						self.new_group(GroupType::Br);
-						self.current_node.borrow_mut().set_void(true);
-						self.end_group(GroupType::Br);
+						if self.linebreaks_allowed {
+							self.new_group(GroupType::Br);
+							self.current_node.borrow_mut().set_void(true);
+							self.end_group(GroupType::Br);
+						}
 					}
 				}
 				Instruction::Scenebreak => {
@@ -603,6 +608,7 @@ impl BBCodeLexer {
 	fn cmd_list_bare_open(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::List);
+		self.linebreaks_allowed = false;
 	}
 	fn cmd_list_open(&mut self, arg: &String) {
 		self.end_group(GroupType::Paragraph);
@@ -613,16 +619,51 @@ impl BBCodeLexer {
 			self.new_group(GroupType::Broken);
 			self.current_node.borrow_mut().set_arg(&format!("list={}", arg));
 		}
+		self.linebreaks_allowed = false;
 	}
 	fn cmd_list_close(&mut self) {
 		self.end_group(GroupType::List);
 		self.new_group(GroupType::Paragraph);
+		self.linebreaks_allowed = true;
 	}
 	fn cmd_list_item(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.end_group(GroupType::ListItem);
 		self.new_group(GroupType::ListItem);
 		self.new_group(GroupType::Paragraph);
+	}
+
+	fn cmd_table_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Table);
+		self.linebreaks_allowed = false;
+	}
+	fn cmd_table_close(&mut self) {
+		self.end_group(GroupType::Table);
+		self.new_group(GroupType::Paragraph);
+		self.linebreaks_allowed = true;
+	}
+	fn cmd_table_row_open(&mut self) {
+		self.new_group(GroupType::TableRow);
+	}
+	fn cmd_table_row_close(&mut self) {
+		self.end_group(GroupType::TableRow);
+	}
+	fn cmd_table_header_open(&mut self) {
+		self.new_group(GroupType::TableHeader);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_table_header_close(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.end_group(GroupType::TableHeader);
+	}
+	fn cmd_table_data_open(&mut self) {
+		self.new_group(GroupType::TableData);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_table_data_close(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.end_group(GroupType::TableData);
 	}
 
 	fn cmd_hr(&mut self) {
@@ -717,6 +758,14 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/figure" => BBCodeLexer::cmd_figure_close,
 	"list" => BBCodeLexer::cmd_list_bare_open,
 	"/list" => BBCodeLexer::cmd_list_close,
+	"table" => BBCodeLexer::cmd_table_open,
+	"/table" => BBCodeLexer::cmd_table_close,
+	"tr" => BBCodeLexer::cmd_table_row_open,
+	"/tr" => BBCodeLexer::cmd_table_row_close,
+	"th" => BBCodeLexer::cmd_table_header_open,
+	"/th" => BBCodeLexer::cmd_table_header_close,
+	"td" => BBCodeLexer::cmd_table_data_open,
+	"/td" => BBCodeLexer::cmd_table_data_close,
 	"*" => BBCodeLexer::cmd_list_item,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
