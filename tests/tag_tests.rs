@@ -49,7 +49,7 @@ fn url_www_arg() {
     	"<p><a href=\"http://www.penclash.com\" rel=\"nofollow\">This should be a link</a></p>");
 }
 #[test]
-fn url_js_arg() {
+fn url_forbidden_char_arg() {
     assert_eq!(bbcode_to_html("[url=alert(\"Hacked!\");]This should not be a link[/url]"), 
     	"<p>This should not be a link</p>");
 }
@@ -416,4 +416,23 @@ fn table() {
         [/tr]
     [/table]"), 
         "<table><tr><th><p>To be</p></th><th><p>or not to be</p></th></tr><tr><td><p>that is</p></td><td><p>the question</p></td></tr></table>");
+}
+
+/*-- PRE-LINE --*/
+
+/*-- INDENT --*/
+#[test]
+fn indent_no_arg() {
+    assert_eq!(bbcode_to_html("[indent]To be, or not to be.[/indent]"), 
+        "<div class=\"indent-1\"><p>To be, or not to be.</p></div>");
+}
+#[test]
+fn indent_arg() {
+    assert_eq!(bbcode_to_html("[indent=3]To be, or not to be.[/indent]"), 
+        "<div class=\"indent-3\"><p>To be, or not to be.</p></div>");
+}
+#[test]
+fn indent_bad_arg() {
+    assert_eq!(bbcode_to_html("[indent=7]To be, or not to be.[/indent]"), 
+        "<p>To be, or not to be.</p>");
 }

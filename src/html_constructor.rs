@@ -127,6 +127,11 @@ impl HTMLConstructor {
 					self.output_string.push_str("<ul>")
 				}
 			},
+			GroupType::Indent => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<div class=\"indent-{}\">", arg));
+				}
+			},
 			GroupType::ListItem => {self.output_string.push_str("<li>")},
 			_ => return
 		};
@@ -181,7 +186,8 @@ impl HTMLConstructor {
 			GroupType::Footnote
 				=> {self.output_string.push_str("</span>")},
 			GroupType::Center |
-			GroupType::Right
+			GroupType::Right |
+			GroupType::Indent
 				=> {self.output_string.push_str("</div>")}
 			_ => return
 		};

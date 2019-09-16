@@ -434,6 +434,32 @@ Embed embeds content from other sources. This should be handled by the end appli
 
 
 
+## Pre-Line
+
+Preserves linebreaks as-written.
+
+#### Tag:
+	{text content}\n\n{more text content}
+
+#### Yields:
+	{text content}\n\n{more text content}
+
+
+
+## Indent
+
+Indents passages of text. Can take an optional argument for the level of indentation, up to four levels deep.
+
+#### Tag:
+	[indent]{text content}[/indent]
+	[indent=4]{text content}[/indent]
+
+#### Yields:
+	<div class="indent-1">{text content}</div>
+	<div class="indent-4">{text content}</div>
+
+
+
 ## Horizontal Rule
 
 Horizontal Rule is a void tag that inserts a horizontal rule.

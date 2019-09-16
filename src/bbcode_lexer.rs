@@ -385,11 +385,15 @@ impl BBCodeLexer {
 	fn cmd_url_arg(&mut self, arg: &String) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			self.current_node.borrow_mut().set_arg(arg);
-		} else if arg.starts_with("www.") {
-			self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
 		} else {
-			self.current_node.borrow_mut().set_ele_type(GroupType::Broken);
-			self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
+			for c in arg.chars() {
+				if FORBIDDEN_URL_CHARS.contains(&c) {
+					self.new_group(GroupType::Broken);
+					self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
+					return;
+				}
+			}
+			self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
 		}
 		self.new_group(GroupType::Text);
 		self.current_node.borrow_mut().add_text(arg);
@@ -399,12 +403,16 @@ impl BBCodeLexer {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			self.new_group(GroupType::Url);
 			self.current_node.borrow_mut().set_arg(arg);
-		} else if arg.starts_with("www.") {
+		} else {
+			for c in arg.chars() {
+				if FORBIDDEN_URL_CHARS.contains(&c) {
+					self.new_group(GroupType::Broken);
+					self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
+					return;
+				}
+			}
 			self.new_group(GroupType::Url);
 			self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
-		} else {
-			self.new_group(GroupType::Broken);
-			self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
 		}
 	}
 	fn cmd_url_close(&mut self) {
@@ -439,7 +447,15 @@ impl BBCodeLexer {
 				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
 				self.end_group(GroupType::Broken);
 			}
-		} else if arg.starts_with("www.") {
+		} else {
+			for c in arg.chars() {
+				if FORBIDDEN_URL_CHARS.contains(&c) {
+					self.new_group(GroupType::Broken);
+					self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
+					self.end_group(GroupType::Broken);
+					return;
+				}
+			}
 			if let Some(index) = arg.rfind(".") {
 				if let Some(suffix) = arg.get(index..) {
 					if ACCEPTED_IMAGE_TYPES.contains(suffix) {
@@ -462,10 +478,6 @@ impl BBCodeLexer {
 				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
 				self.end_group(GroupType::Broken);
 			}
-		} else {
-			self.new_group(GroupType::Broken);
-			self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-			self.end_group(GroupType::Broken);
 		}
 	}
 	fn cmd_img_close(&mut self) {
@@ -674,6 +686,40 @@ impl BBCodeLexer {
 		self.new_group(GroupType::Paragraph);
 	}
 
+	fn cmd_preline_open(&mut self) {
+		self.new_group(GroupType::PreLine);
+		self.ignore_formatting = true;
+	}
+	fn cmd_preline_close(&mut self) {
+		self.ignore_formatting = false;
+		self.end_group(GroupType::PreLine);
+	}
+
+	fn cmd_indent_open(&mut self, arg: &String) {
+		match arg as &str {
+			"1" | "2" | "3" | "4" => {
+				self.end_group(GroupType::Paragraph);
+				self.new_group(GroupType::Indent);
+				self.current_node.borrow_mut().set_arg(arg);
+				self.new_group(GroupType::Paragraph);
+			},
+			_ => {
+				self.new_group(GroupType::Broken);
+				self.current_node.borrow_mut().set_arg(&format!("indent={}", arg));
+			},
+		}
+	}
+	fn cmd_indent_bare_open(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.new_group(GroupType::Indent);
+		self.current_node.borrow_mut().set_arg(&"1".to_string());
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_indent_close(&mut self) {		
+		self.end_group(GroupType::Indent);
+		self.new_group(GroupType::Paragraph);
+	}
+
 	fn cmd_center_open(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.new_group(GroupType::Center);
@@ -758,6 +804,7 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/figure" => BBCodeLexer::cmd_figure_close,
 	"list" => BBCodeLexer::cmd_list_bare_open,
 	"/list" => BBCodeLexer::cmd_list_close,
+	"*" => BBCodeLexer::cmd_list_item,
 	"table" => BBCodeLexer::cmd_table_open,
 	"/table" => BBCodeLexer::cmd_table_close,
 	"tr" => BBCodeLexer::cmd_table_row_open,
@@ -766,7 +813,10 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/th" => BBCodeLexer::cmd_table_header_close,
 	"td" => BBCodeLexer::cmd_table_data_open,
 	"/td" => BBCodeLexer::cmd_table_data_close,
-	"*" => BBCodeLexer::cmd_list_item,
+	"pre-line" => BBCodeLexer::cmd_preline_open,
+	"/pre-line" => BBCodeLexer::cmd_preline_close,
+	"indent" => BBCodeLexer::cmd_indent_bare_open,
+	"/indent" => BBCodeLexer::cmd_indent_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
@@ -780,6 +830,7 @@ static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_
 	"footnote" => BBCodeLexer::cmd_footnote_open,
 	"figure" => BBCodeLexer::cmd_figure_open,
 	"list" => BBCodeLexer::cmd_list_open,
+	"indent" => BBCodeLexer::cmd_indent_open,
 };
 /// Static compile-time set of valid HTML web colours.
 static WEB_COLOURS: phf::Set<&'static str> = phf_set! {
@@ -1096,6 +1147,22 @@ static ACCEPTED_IMAGE_TYPES: phf::Set<&'static str> = phf_set! {
 	".bmp",
 	//".svg", Dangerous!
 	".webp",
+};
+
+/// Static compile-time set of forbidden URL characters.
+static FORBIDDEN_URL_CHARS: phf::Set<char> = phf_set! {
+	':',
+	';',
+	'*',
+	'#',
+	'{',
+	'}',
+	'|',
+	'^',
+	'~',
+	'[',
+	']',
+	'`',
 };
 
 /// Static compile-time set of accepted list types.
