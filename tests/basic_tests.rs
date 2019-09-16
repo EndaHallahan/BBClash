@@ -39,8 +39,8 @@ fn partially_nested_tags() {
 }
 #[test]
 fn improperly_nested_tags() {
-	assert_eq!(bbcode_to_html("I'm [i][b]fucking[/i] broken![/b]"), 
-		"<p>I&#x27m <i><b>fucking</b></i><b> broken!</b></p>");
+	assert_eq!(bbcode_to_html("I'm [i][b]very[/i] broken![/b]"), 
+		"<p>I&#x27m <i><b>very</b></i><b> broken!</b></p>");
 }
 #[test]
 fn missing_close_tag() {
@@ -51,6 +51,12 @@ fn missing_close_tag() {
 fn missing_open_tag() {
 	assert_eq!(bbcode_to_html("I'm missing an opening[/i] tag!"), 
 		"<p>I&#x27m missing an opening tag!</p>");
+}
+#[test]
+fn tag_across_paragraphs() {
+	assert_eq!(bbcode_to_html("I'm [b]split
+	across multiple[/b] lines!"), 
+		"<p>I&#x27m <b>split</b></p><p><b>across multiple</b> lines!</p>");
 }
 #[test]
 fn empty_tag() {

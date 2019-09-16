@@ -141,7 +141,7 @@ pub enum Instruction {
 
 /// Types of ASTElement.
 #[derive(Debug, PartialEq, Clone)]
-pub enum GroupType {
+pub enum GroupType{
 	Text,
 	Hr,
 	Br,
@@ -186,7 +186,7 @@ pub enum GroupType {
 	Paragraph,
 	Scenebreak,
 	Null,
-	Broken,
+	Broken(Box<GroupType>, &'static str),
 	Document,
 	Anchor
 }

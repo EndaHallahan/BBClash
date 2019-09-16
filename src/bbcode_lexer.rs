@@ -75,8 +75,7 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().add_text(&param);
 						self.end_group(GroupType::Text);
 					} else {
-						self.end_group(GroupType::Paragraph);
-						self.new_group(GroupType::Paragraph);
+						self.end_and_new_group(GroupType::Paragraph, GroupType::Paragraph);
 					}	
 				}
 				Instruction::Linebreak => {
@@ -113,6 +112,107 @@ impl BBCodeLexer {
 	fn new_group(&mut self, ele_type: GroupType) {
 		self.current_node.append(Node::new(ASTElement::new(ele_type)));
 		self.current_node = self.current_node.last_child().unwrap();
+	}
+	/// Moves current working node up to the current node's parent and then creates a new element, 
+	/// preserving the formatting from the previous.
+	fn end_and_new_group(&mut self, ele_type: GroupType, new_type: GroupType) {
+		if let Some(mut kid) = self.current_node.last_child() {
+			if kid.borrow().ele_type() == &GroupType::Br {
+				kid.detach();
+			}
+		}
+		if self.current_node.borrow_mut().ele_type() == &ele_type {
+			match self.current_node.parent() {
+				None => {},
+				Some(parent) => {
+					if !self.current_node.has_children()
+					&& (
+						!self.ignore_formatting &&
+						if let Some(text) = self.current_node.borrow().text_contents() {
+							text.trim().len() == 0
+						} else {
+							true
+						}
+					)
+					&& !self.current_node.borrow().is_void() {
+						self.current_node.detach();
+					}
+					self.current_node = parent;
+				}
+			};
+			self.new_group(new_type);
+		} else {
+			let mut group_stack = Vec::new();
+			let mut go = true;
+			while go {
+				let my_type = self.current_node.borrow_mut().ele_type().clone();
+				match my_type {
+					GroupType::Paragraph if ele_type != GroupType::Paragraph => {
+						go = false;
+						if !self.current_node.has_children() {
+							self.current_node.detach();
+						}
+					},
+					GroupType::List if ele_type != GroupType::List => {
+						go = false;
+					},
+					GroupType::Document if ele_type != GroupType::Document => {
+						go = false;
+					},
+					_ => {
+						if my_type == ele_type {
+							go = false;
+						} else {
+							if let GroupType::Broken(some_box, _) = my_type.clone() {
+								let unpacked_type = *some_box;
+								if unpacked_type == ele_type {
+									go = false;
+								} else {
+									group_stack.push(GroupShorthand {
+										ele_type: my_type, 
+										arg: self.current_node.borrow_mut().argument().clone()
+									});
+								}
+							} else {
+								group_stack.push(GroupShorthand {
+									ele_type: my_type, 
+									arg: self.current_node.borrow_mut().argument().clone()
+								});
+							}
+							
+						}
+						match self.current_node.parent() {
+							None => {
+								go = false;
+							},
+							Some(parent) => {
+								if !self.current_node.has_children()
+								&& (
+									!self.ignore_formatting &&
+									if let Some(text) = self.current_node.borrow().text_contents() {
+										text.trim().len() == 0
+									} else {
+										true
+									}
+								)
+								&& !self.current_node.borrow().is_void() {
+									self.current_node.detach();
+								}
+								self.current_node = parent;
+							}
+						};
+					}
+				}
+			}
+			self.new_group(new_type);
+			while group_stack.len() > 0 {
+				let group = group_stack.pop().unwrap();
+				self.new_group(group.ele_type.clone());
+				if let Some(arg) = group.arg {
+					self.current_node.borrow_mut().set_arg(&arg);
+				}
+			}
+		}	
 	}
 	/// Moves current working node up to the current node's parent.
 	fn end_group(&mut self, ele_type: GroupType) {
@@ -162,10 +262,23 @@ impl BBCodeLexer {
 						if my_type == ele_type {
 							go = false;
 						} else {
-							group_stack.push(GroupShorthand {
-								ele_type: my_type, 
-								arg: self.current_node.borrow_mut().argument().clone()
-							});
+							if let GroupType::Broken(some_box, _) = my_type.clone() {
+								let unpacked_type = *some_box;
+								if unpacked_type == ele_type {
+									go = false;
+								} else {
+									group_stack.push(GroupShorthand {
+										ele_type: my_type, 
+										arg: self.current_node.borrow_mut().argument().clone()
+									});
+								}
+							} else {
+								group_stack.push(GroupShorthand {
+									ele_type: my_type, 
+									arg: self.current_node.borrow_mut().argument().clone()
+								});
+							}
+							
 						}
 						match self.current_node.parent() {
 							None => {
@@ -351,8 +464,7 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_pre_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Pre);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Pre);
 		self.ignore_formatting = true;
 	}
 	fn cmd_pre_close(&mut self) {
@@ -370,8 +482,8 @@ impl BBCodeLexer {
 			self.new_group(GroupType::Colour);
 			self.current_node.borrow_mut().set_arg(arg);
 		} else {
-			self.new_group(GroupType::Broken);
-			self.current_node.borrow_mut().set_arg(&format!("color={}", arg));
+			self.new_group(GroupType::Broken(Box::new(GroupType::Colour), "colour"));
+			self.current_node.borrow_mut().set_arg(arg);
 		}
 	}
 	fn cmd_colour_close(&mut self) {
@@ -388,8 +500,8 @@ impl BBCodeLexer {
 		} else {
 			for c in arg.chars() {
 				if FORBIDDEN_URL_CHARS.contains(&c) {
-					self.new_group(GroupType::Broken);
-					self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
+					self.new_group(GroupType::Broken(Box::new(GroupType::Url), "url"));
+					self.current_node.borrow_mut().set_arg(arg);
 					return;
 				}
 			}
@@ -406,8 +518,8 @@ impl BBCodeLexer {
 		} else {
 			for c in arg.chars() {
 				if FORBIDDEN_URL_CHARS.contains(&c) {
-					self.new_group(GroupType::Broken);
-					self.current_node.borrow_mut().set_arg(&format!("url={}", arg));
+					self.new_group(GroupType::Broken(Box::new(GroupType::Url), "url"));
+					self.current_node.borrow_mut().set_arg(arg);
 					return;
 				}
 			}
@@ -433,26 +545,26 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().set_arg(arg);
 						self.end_group(GroupType::Image);
 					} else {
-						self.new_group(GroupType::Broken);
-						self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-						self.end_group(GroupType::Broken);
+						self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 					}
 				} else {
-					self.new_group(GroupType::Broken);
-					self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-					self.end_group(GroupType::Broken);
+					self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 				}
 			} else {
-				self.new_group(GroupType::Broken);
-				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-				self.end_group(GroupType::Broken);
+				self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 			}
 		} else {
 			for c in arg.chars() {
 				if FORBIDDEN_URL_CHARS.contains(&c) {
-					self.new_group(GroupType::Broken);
-					self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-					self.end_group(GroupType::Broken);
+					self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 					return;
 				}
 			}
@@ -464,19 +576,19 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
 						self.end_group(GroupType::Image);
 					} else {
-						self.new_group(GroupType::Broken);
-						self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-						self.end_group(GroupType::Broken);
+						self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 					}
 				} else {
-					self.new_group(GroupType::Broken);
-					self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-					self.end_group(GroupType::Broken);
+					self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 				}
 			} else {
-				self.new_group(GroupType::Broken);
-				self.current_node.borrow_mut().set_arg(&format!("img={}", arg));
-				self.end_group(GroupType::Broken);
+				self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+						self.current_node.borrow_mut().set_arg(arg);
+						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 			}
 		}
 	}
@@ -505,8 +617,8 @@ impl BBCodeLexer {
 				self.current_node.borrow_mut().set_arg(&val.to_string());
 			}
 			Err(_) => {
-				self.new_group(GroupType::Broken);
-				self.current_node.borrow_mut().set_arg(&format!("opacity={}", arg));
+				self.new_group(GroupType::Broken(Box::new(GroupType::Opacity), "opacity"));
+				self.current_node.borrow_mut().set_arg(arg);
 			}
 		}
 	}
@@ -535,8 +647,8 @@ impl BBCodeLexer {
 				self.current_node.borrow_mut().set_arg(&val.to_string());
 			}
 			Err(_) => {
-				self.new_group(GroupType::Broken);
-				self.current_node.borrow_mut().set_arg(&format!("size={}", arg));
+				self.new_group(GroupType::Broken(Box::new(GroupType::Size), "size"));
+				self.current_node.borrow_mut().set_arg(arg);
 			}
 		}
 	}
@@ -545,13 +657,11 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_quote_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Quote);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Quote);
 		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_quote_arg_open(&mut self, arg: &String) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Quote);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Quote);
 		self.current_node.borrow_mut().set_arg(arg);
 		self.new_group(GroupType::Paragraph);
 	}
@@ -581,78 +691,67 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_codeblock_bare_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::CodeBlock);
 		self.ignore_tags = Some("/codeblock");
 		self.ignore_formatting = true;
-		self.new_group(GroupType::CodeBlock);
 	}
 	fn cmd_codeblock_open(&mut self, arg: &String) {
-		self.end_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::CodeBlock);
 		self.ignore_tags = Some("/codeblock");
 		self.ignore_formatting = true;
-		self.new_group(GroupType::CodeBlock);
 		self.current_node.borrow_mut().set_arg(arg);
 	}
 	fn cmd_codeblock_close(&mut self) {
-		self.end_group(GroupType::CodeBlock);
+		self.end_and_new_group(GroupType::CodeBlock, GroupType::Paragraph);
 		self.ignore_tags = None;
 		self.ignore_formatting = false;
-		self.new_group(GroupType::Paragraph);
 	}
 
 	fn cmd_figure_open(&mut self, arg: &String) {	
 		if arg == "right" || arg == "left" {
-			self.end_group(GroupType::Paragraph);
-			self.new_group(GroupType::Figure);
+			self.end_and_new_group(GroupType::Paragraph, GroupType::Figure);
 			self.current_node.borrow_mut().set_arg(arg);
 			self.new_group(GroupType::Paragraph);
 		} else {
-			self.new_group(GroupType::Broken);
-			self.current_node.borrow_mut().set_arg(&format!("figure={}", arg));
+			self.new_group(GroupType::Broken(Box::new(GroupType::Figure), "figure"));
+			self.current_node.borrow_mut().set_arg(arg);
 		}
 	}
 	fn cmd_figure_close(&mut self) {
 		self.end_group(GroupType::Paragraph);
-		self.end_group(GroupType::Figure);
-		self.new_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Figure, GroupType::Paragraph);
 	}
 
 	fn cmd_list_bare_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::List);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::List);
 		self.linebreaks_allowed = false;
 	}
 	fn cmd_list_open(&mut self, arg: &String) {
-		self.end_group(GroupType::Paragraph);
 		if LIST_TYPES.contains(arg as &str) {
-			self.new_group(GroupType::List);
+			self.end_and_new_group(GroupType::Paragraph, GroupType::List);
 			self.current_node.borrow_mut().set_arg(arg);
+			self.linebreaks_allowed = false;
 		} else {
-			self.new_group(GroupType::Broken);
-			self.current_node.borrow_mut().set_arg(&format!("list={}", arg));
+			self.new_group(GroupType::Broken(Box::new(GroupType::List), "list"));
+			self.current_node.borrow_mut().set_arg(arg);
 		}
-		self.linebreaks_allowed = false;
 	}
 	fn cmd_list_close(&mut self) {
-		self.end_group(GroupType::List);
-		self.new_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::List, GroupType::Paragraph);
 		self.linebreaks_allowed = true;
 	}
 	fn cmd_list_item(&mut self) {
 		self.end_group(GroupType::Paragraph);
-		self.end_group(GroupType::ListItem);
-		self.new_group(GroupType::ListItem);
+		self.end_and_new_group(GroupType::ListItem, GroupType::ListItem);
 		self.new_group(GroupType::Paragraph);
 	}
 
 	fn cmd_table_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Table);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Table);
 		self.linebreaks_allowed = false;
 	}
 	fn cmd_table_close(&mut self) {
-		self.end_group(GroupType::Table);
-		self.new_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Table, GroupType::Paragraph);
 		self.linebreaks_allowed = true;
 	}
 	fn cmd_table_row_open(&mut self) {
@@ -698,48 +797,41 @@ impl BBCodeLexer {
 	fn cmd_indent_open(&mut self, arg: &String) {
 		match arg as &str {
 			"1" | "2" | "3" | "4" => {
-				self.end_group(GroupType::Paragraph);
-				self.new_group(GroupType::Indent);
+				self.end_and_new_group(GroupType::Paragraph, GroupType::Indent);
 				self.current_node.borrow_mut().set_arg(arg);
 				self.new_group(GroupType::Paragraph);
 			},
 			_ => {
-				self.new_group(GroupType::Broken);
-				self.current_node.borrow_mut().set_arg(&format!("indent={}", arg));
+				self.new_group(GroupType::Broken(Box::new(GroupType::Indent), "indent"));
+				self.current_node.borrow_mut().set_arg(arg);
 			},
 		}
 	}
 	fn cmd_indent_bare_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Indent);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Indent);
 		self.current_node.borrow_mut().set_arg(&"1".to_string());
 		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_indent_close(&mut self) {		
-		self.end_group(GroupType::Indent);
-		self.new_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Indent, GroupType::Paragraph);
 	}
 
 	fn cmd_center_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Center);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Center);
 		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_center_close(&mut self) {
 		self.end_group(GroupType::Paragraph);
-		self.end_group(GroupType::Center);
-		self.new_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Center, GroupType::Paragraph);
 	}
 
 	fn cmd_right_open(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.new_group(GroupType::Right);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Right);
 		self.new_group(GroupType::Paragraph);
 	}
 	fn cmd_right_close(&mut self) {
 		self.end_group(GroupType::Paragraph);
-		self.end_group(GroupType::Right);
-		self.new_group(GroupType::Paragraph);
+		self.end_and_new_group(GroupType::Right, GroupType::Paragraph);
 	}
 }
 /// Static compile-time map of tags without arguments to lexer commands.

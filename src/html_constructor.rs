@@ -3,6 +3,8 @@ use std::cell::Ref;
 use super::GroupType;
 use super::ASTElement; 
 
+const PRETTY_PRINT: bool = false;
+
 /// Struct for generation of HTML strings.
 pub struct HTMLConstructor {
 	output_string: String,
@@ -133,6 +135,13 @@ impl HTMLConstructor {
 				}
 			},
 			GroupType::ListItem => {self.output_string.push_str("<li>")},
+			GroupType::Broken(_, tag) if PRETTY_PRINT => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("[{}={}]", tag, arg));
+				} else {
+					self.output_string.push_str(&format!("[/{}]", tag));
+				}
+			},
 			_ => return
 		};
 	}
@@ -189,6 +198,9 @@ impl HTMLConstructor {
 			GroupType::Right |
 			GroupType::Indent
 				=> {self.output_string.push_str("</div>")}
+			GroupType::Broken(_, tag) if PRETTY_PRINT => {
+				self.output_string.push_str(&format!("[/{}]", tag));
+			},
 			_ => return
 		};
 	}
