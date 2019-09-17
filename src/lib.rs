@@ -1,5 +1,8 @@
 /*!
+
 BBClash is the open-source version of the BBCode compiler being built for [Penclash](https://endahallahan.github.io/Penclash-Splash-Site/). Unlike most implementations, BBClash is **not RegEx-based.** It functions like a compiler, tokenizing, lexing, and then constructing compliant HTML from an AST-like object. This makes it robust and good at handling even improperly-formatted input. 
+
+Our BBCode specification can be found [here](https://github.com/EndaHallahan/BBClash/blob/master/Spec.md).
 
 ## General Usage:
 
@@ -11,6 +14,28 @@ assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"),
 ```
 
 BBClash also comes ready out-of-the-box for use as WASM or with other languages via C bindings.
+
+## Pretty and Ugly Output
+
+BBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode from the final output:
+
+```rust
+use bbclash::bbcode_to_html;
+
+assert_eq!(bbcode_to_html("I'm [colour]missing an argument![/colour]"), 
+		"<p>I&#x27m missing an argument!</p>");
+```
+
+Ugly uses the `bbcode_to_html_ugly` function, and leaves improperly formatted BBCode tags in the final output as written:
+
+```rust
+use bbclash::bbcode_to_html_ugly;
+
+assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
+		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+```
+
+Note that neither mode arbitrarily strips any text in square brackets. this only affects improperly-written BBCode tags; `[non tags]` will not be affected.
 
 ## Custom Usage:
 

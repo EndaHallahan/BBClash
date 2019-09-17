@@ -13,11 +13,6 @@ Our BBCode specification can be found [here](https://github.com/EndaHallahan/BBC
 
 ## General Usage:
 
-```
-[dependencies]
-bbclash = "1.0.0"
-```
-
 ```rust
 use bbclash::bbcode_to_html;
 
