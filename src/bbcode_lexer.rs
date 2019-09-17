@@ -432,6 +432,9 @@ impl BBCodeLexer {
 			self.current_node.borrow_mut().set_arg(arg);
 		}
 	}
+	fn cmd_colour_bare_open(&mut self) {
+		self.new_group(GroupType::Broken(Box::new(GroupType::Colour), "colour"));
+	}
 	fn cmd_colour_close(&mut self) {
 		self.end_group(GroupType::Colour);
 	}
@@ -582,6 +585,9 @@ impl BBCodeLexer {
 			}
 		}
 	}
+	fn cmd_opacity_bare_open(&mut self) {
+		self.new_group(GroupType::Broken(Box::new(GroupType::Opacity), "opacity"));
+	}
 	fn cmd_opacity_close(&mut self) {
 		self.end_group(GroupType::Opacity);
 	}
@@ -611,6 +617,9 @@ impl BBCodeLexer {
 				self.current_node.borrow_mut().set_arg(arg);
 			}
 		}
+	}
+	fn cmd_size_bare_open(&mut self) {
+		self.new_group(GroupType::Broken(Box::new(GroupType::Size), "size"));
 	}
 	fn cmd_size_close(&mut self) {
 		self.end_group(GroupType::Size);
@@ -868,9 +877,13 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/center" => BBCodeLexer::cmd_center_close,
 	"right" => BBCodeLexer::cmd_right_open,
 	"/right" => BBCodeLexer::cmd_right_close,
+	"color" => BBCodeLexer::cmd_colour_bare_open,
+	"colour" => BBCodeLexer::cmd_colour_bare_open,
 	"/color" => BBCodeLexer::cmd_colour_close,
 	"/colour" => BBCodeLexer::cmd_colour_close,
+	"opacity" => BBCodeLexer::cmd_opacity_bare_open,
 	"/opacity" => BBCodeLexer::cmd_opacity_close,
+	"size" => BBCodeLexer::cmd_size_bare_open,
 	"/size" => BBCodeLexer::cmd_size_close,
 	"url" => BBCodeLexer::cmd_url_bare_open,
 	"/url" => BBCodeLexer::cmd_url_close,

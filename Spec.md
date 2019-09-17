@@ -304,7 +304,7 @@ Creates a footnote. Footnotes are kept inline with the text in their original po
 
 ## Pre 
 
-Pre creates a block of preformatted text. Text will be displayed ina  monospaced font and will preserve formatting. 
+Pre creates a block of preformatted text. Text will be displayed in a monospaced font and will preserve formatting. 
 
 #### Tag:
 	[pre]{text content}[/pre]
@@ -316,7 +316,7 @@ Pre creates a block of preformatted text. Text will be displayed ina  monospaced
 
 ## Code and Codeblock
 
-Code and codeblock define areas of computer code or markup that should not be formatted. Code defines a single line of text; codeblock allows for multiple lines. Codeblock also allows an argument to define the language of its contents intended for use with syntax highlighting. BBCode tags in Code or Codeblock should be ignored.
+Code and Codeblock define areas of computer code or markup that should not be formatted. Code defines a single line of text; Codeblock allows for multiple lines. Codeblock also allows an argument to define the language of its contents intended for use with syntax highlighting. BBCode tags in Code or Codeblock should be ignored.
 
 #### Tag:
 	[code]{text content}[/code]
@@ -346,7 +346,7 @@ Figure defines self-contained content that can be floated to the right or left. 
 
 ## List and List Item
 
-List and its subordinate tag List Item create lists. Lists can be nested. Lists are by default bulleted and unordered. To change the style of bullet for an unordered list, 'circle', 'square', or 'none' may be supplied. to create an ordered list, an argument must be supplied: '1' for numeric, 'a' and 'A' for lower and uppercase albabetic, and 'i' and 'I' for lower and upper case roman numeric.
+List and its subordinate tag List Item create lists. Lists can be nested. Lists are by default bulleted and unordered. To change the style of bullet for an unordered list, 'circle', 'square', or 'none' may be supplied. to create an ordered list, an argument must be supplied: '1' for numeric, 'a' and 'A' for lower and uppercase alphabetic, and 'i' and 'I' for lower and upper case roman numeric.
 
 #### Tag:
 	[list]

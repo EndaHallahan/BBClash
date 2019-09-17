@@ -1,4 +1,4 @@
-use bbclash::bbcode_to_html;
+use bbclash::{bbcode_to_html, bbcode_to_html_ugly};
 
 #[test]
 fn empty_string() {
@@ -113,4 +113,9 @@ fn triple_newline() {
 fn not_a_tag() {
 	assert_eq!(bbcode_to_html("This is [not a tag], just some [square] brackets!"), 
 		"<p>This is [not a tag], just some [square] brackets!</p>");
+}
+#[test]
+fn ugly_output() {
+	assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
+		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
 }

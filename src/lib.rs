@@ -32,6 +32,7 @@ pub use crate::bbcode_lexer::BBCodeLexer;
 pub use crate::html_constructor::HTMLConstructor;
 
 /// Generates a string of HTML from an &str of BBCode.
+/// This function produces *pretty* output, meaning that any eroneously written BBCode encountered will be removed from the final output.
 /// # Examples
 ///
 /// ```
@@ -44,7 +45,25 @@ pub use crate::html_constructor::HTMLConstructor;
 pub extern fn bbcode_to_html(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
 	let mut lexer = BBCodeLexer::new();
-	let mut constructor = HTMLConstructor::new(input.len());
+	let mut constructor = HTMLConstructor::new(input.len(), true);
+	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
+}
+
+/// Generates a string of HTML from an &str of BBCode. 
+/// This function produces *ugly* output, meaning that any eroneously written BBCode encountered will be included in the final output.
+/// # Examples
+///
+/// ```
+///use bbclash::bbcode_to_html_ugly;
+///
+///assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
+///		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+/// ```
+#[no_mangle]
+pub extern fn bbcode_to_html_ugly(input: &str) -> String {
+    let mut tokenizer = BBCodeTokenizer::new();
+	let mut lexer = BBCodeLexer::new();
+	let mut constructor = HTMLConstructor::new(input.len(), false);
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
 }
 

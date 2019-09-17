@@ -4,7 +4,7 @@ use bbclash::bbcode_to_html;
 #[test]
 fn color_no_argument() {
     assert_eq!(bbcode_to_html("[color]This should not be coloured[/color]"), 
-    	"<p>[color]This should not be coloured</p>");
+    	"<p>This should not be coloured</p>");
 }
 #[test]
 fn color_name_arg() {
@@ -68,7 +68,7 @@ fn url_bad_arg() {
 #[test]
 fn opacity_no_argument() {
     assert_eq!(bbcode_to_html("[opacity]This should not be transparant![/opacity]"), 
-    	"<p>[opacity]This should not be transparant!</p>");
+    	"<p>This should not be transparant!</p>");
 }
 #[test]
 fn opacity_bad_argument() {
@@ -90,7 +90,7 @@ fn opacity_perc_argument() {
 #[test]
 fn size_no_argument() {
     assert_eq!(bbcode_to_html("[size]This should be normal![/size]"), 
-    	"<p>[size]This should be normal!</p>");
+    	"<p>This should be normal!</p>");
 }
 #[test]
 fn size_bad_argument() {

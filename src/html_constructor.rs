@@ -3,17 +3,19 @@ use std::cell::Ref;
 use super::GroupType;
 use super::ASTElement; 
 
-const PRETTY_PRINT: bool = false;
-
 /// Struct for generation of HTML strings.
 pub struct HTMLConstructor {
 	output_string: String,
+	pretty_print: bool,
 }
 impl HTMLConstructor {
 	/// Creates a new HTMLConstructor.
-	pub fn new (out_len: usize) -> HTMLConstructor {
+	pub fn new (out_len: usize, pretty_print: bool) -> HTMLConstructor {
 		let output_string = String::with_capacity(out_len + out_len/2);
-		HTMLConstructor{output_string}
+		HTMLConstructor {
+			output_string, 
+			pretty_print,
+		}
 	}
 
 	/// Generates an HTML string from an ASTElement
@@ -147,11 +149,11 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<div class=\"embed\" data-content=\"{}\">", arg));
 				}	
 			},
-			GroupType::Broken(_, tag) if PRETTY_PRINT => {
+			GroupType::Broken(_, tag) if !self.pretty_print => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("[{}={}]", tag, arg));
 				} else {
-					self.output_string.push_str(&format!("[/{}]", tag));
+					self.output_string.push_str(&format!("[{}]", tag));
 				}
 			},
 			_ => return
@@ -215,7 +217,7 @@ impl HTMLConstructor {
 			GroupType::MathBlock |
 			GroupType::Embed
 				=> {self.output_string.push_str("</div>")}
-			GroupType::Broken(_, tag) if PRETTY_PRINT => {
+			GroupType::Broken(_, tag) if !self.pretty_print => {
 				self.output_string.push_str(&format!("[/{}]", tag));
 			},
 			_ => return
