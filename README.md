@@ -1,7 +1,7 @@
 # BBClash
-![Crates.io](https://img.shields.io/crates/v/bbclash)
+[![Crates.io](https://img.shields.io/crates/v/bbclash)](https://crates.io/crates/bbclash)
 [![Documentation](https://docs.rs/bbclash/badge.svg)](https://docs.rs/bbclash)
-![Crates.io](https://img.shields.io/crates/l/bbclash)
+[![Crates.io](https://img.shields.io/crates/l/bbclash)](https://github.com/EndaHallahan/BBClash/blob/master/LICENSE.md)
 
 A robust, opinionated, performance-focused BBCode to HTML parser and compiler.
 
