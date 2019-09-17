@@ -1,8 +1,15 @@
-use bbclash::bbcode_to_html;
+use bbclash::{bbcode_to_html, bbcode_to_html_ugly};
 
 #[test]
 fn empty_string() {
     assert_eq!(bbcode_to_html(""), 
+    	"");
+}
+#[test]
+fn empty_para_string() {
+    assert_eq!(bbcode_to_html("
+
+    "), 
     	"");
 }
 #[test]
@@ -32,8 +39,8 @@ fn partially_nested_tags() {
 }
 #[test]
 fn improperly_nested_tags() {
-	assert_eq!(bbcode_to_html("I'm [i][b]fucking[/i] broken![/b]"), 
-		"<p>I&#x27m <i><b>fucking</b></i><b> broken!</b></p>");
+	assert_eq!(bbcode_to_html("I'm [i][b]very[/i] broken![/b]"), 
+		"<p>I&#x27m <i><b>very</b></i><b> broken!</b></p>");
 }
 #[test]
 fn missing_close_tag() {
@@ -46,6 +53,12 @@ fn missing_open_tag() {
 		"<p>I&#x27m missing an opening tag!</p>");
 }
 #[test]
+fn tag_across_paragraphs() {
+	assert_eq!(bbcode_to_html("I'm [b]split
+	across multiple[/b] lines!"), 
+		"<p>I&#x27m <b>split</b></p><p><b>across multiple</b> lines!</p>");
+}
+#[test]
 fn empty_tag() {
 	assert_eq!(bbcode_to_html("I have an [i][/i]empty tag!"), 
 		"<p>I have an empty tag!</p>");
@@ -53,7 +66,7 @@ fn empty_tag() {
 #[test]
 fn void_tag() {
 	assert_eq!(bbcode_to_html("I have an hr[hr] tag!"), 
-		"<p>I have an hr<hr> tag!</p>");
+		"<p>I have an hr</p><hr><p> tag!</p>");
 }
 #[test]
 fn multiple_opening_tags() {
@@ -81,6 +94,12 @@ fn single_newline() {
 		"<p>I have a single<br>newline!</p>");
 }
 #[test]
+fn single_newline_paragraph() {
+	assert_eq!(bbcode_to_html("
+		"), 
+		"");
+}
+#[test]
 fn double_newline() {
 	assert_eq!(bbcode_to_html("I have a double\n\n newline!"), 
 		"<p>I have a double</p><p>newline!</p>");
@@ -88,10 +107,15 @@ fn double_newline() {
 #[test]
 fn triple_newline() {
 	assert_eq!(bbcode_to_html("I have a triple\n\n\n newline!"), 
-		"<p>I have a triple<br><br><br> newline!</p>");
+		"<p>I have a triple</p><br><br><br><p> newline!</p>");
 }
 #[test]
 fn not_a_tag() {
 	assert_eq!(bbcode_to_html("This is [not a tag], just some [square] brackets!"), 
 		"<p>This is [not a tag], just some [square] brackets!</p>");
+}
+#[test]
+fn ugly_output() {
+	assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
+		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
 }

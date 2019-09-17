@@ -1,5 +1,8 @@
 /*!
+
 BBClash is the open-source version of the BBCode compiler being built for [Penclash](https://endahallahan.github.io/Penclash-Splash-Site/). Unlike most implementations, BBClash is **not RegEx-based.** It functions like a compiler, tokenizing, lexing, and then constructing compliant HTML from an AST-like object. This makes it robust and good at handling even improperly-formatted input. 
+
+Our BBCode specification can be found [here](https://github.com/EndaHallahan/BBClash/blob/master/Spec.md).
 
 ## General Usage:
 
@@ -11,6 +14,28 @@ assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"),
 ```
 
 BBClash also comes ready out-of-the-box for use as WASM or with other languages via C bindings.
+
+## Pretty and Ugly Output
+
+BBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode from the final output:
+
+```rust
+use bbclash::bbcode_to_html;
+
+assert_eq!(bbcode_to_html("I'm [colour]missing an argument![/colour]"), 
+		"<p>I&#x27m missing an argument!</p>");
+```
+
+Ugly uses the `bbcode_to_html_ugly` function, and leaves improperly formatted BBCode tags in the final output as written:
+
+```rust
+use bbclash::bbcode_to_html_ugly;
+
+assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
+		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+```
+
+Note that neither mode arbitrarily strips any text in square brackets. this only affects improperly-written BBCode tags; `[non tags]` will not be affected.
 
 ## Custom Usage:
 
@@ -32,6 +57,7 @@ pub use crate::bbcode_lexer::BBCodeLexer;
 pub use crate::html_constructor::HTMLConstructor;
 
 /// Generates a string of HTML from an &str of BBCode.
+/// This function produces *pretty* output, meaning that any eroneously written BBCode encountered will be removed from the final output.
 /// # Examples
 ///
 /// ```
@@ -44,12 +70,26 @@ pub use crate::html_constructor::HTMLConstructor;
 pub extern fn bbcode_to_html(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
 	let mut lexer = BBCodeLexer::new();
-	let mut constructor = HTMLConstructor::new(input.len());
+	let mut constructor = HTMLConstructor::new(input.len(), true);
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
-	// Debug code:
-	/*for node in out.descendants() {
-		println!("{:?}", node.borrow());
-	}*/
+}
+
+/// Generates a string of HTML from an &str of BBCode. 
+/// This function produces *ugly* output, meaning that any eroneously written BBCode encountered will be included in the final output.
+/// # Examples
+///
+/// ```
+///use bbclash::bbcode_to_html_ugly;
+///
+///assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
+///		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+/// ```
+#[no_mangle]
+pub extern fn bbcode_to_html_ugly(input: &str) -> String {
+    let mut tokenizer = BBCodeTokenizer::new();
+	let mut lexer = BBCodeLexer::new();
+	let mut constructor = HTMLConstructor::new(input.len(), false);
+	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
 }
 
 /// A single element of a BBCode AST.
@@ -138,14 +178,14 @@ pub enum Instruction {
 	Null,
 	Tag(String, Option<String>), 
 	Text(String),
-	Parabreak,
+	Parabreak(String),
 	Linebreak,
 	Scenebreak
 }
 
 /// Types of ASTElement.
 #[derive(Debug, PartialEq, Clone)]
-pub enum GroupType {
+pub enum GroupType{
 	Text,
 	Hr,
 	Br,
@@ -162,33 +202,35 @@ pub enum GroupType {
 	Spoiler,
 	Colour,
 	Url,
-	//Email,
+	Email,
 	Opacity,
 	Size,
 	Center,
 	Right,
 	Image,
 	Quote,
-	//Footnote,
-	//Indent,
-	//Pre,
-	//PreLine,
-	//Header,
-	//Figure,
-	//List,
-	//Embed,
-	//Code,
-	//CodeBlock,
+	Footnote,
+	Indent,
+	Pre,
+	PreLine,
+	Header,
+	Figure,
+	List,
+	ListItem,
+	Embed,
+	Code,
+	CodeBlock,
 	//Icon,
-	//Math,
-	//Table,
-	//TableRow,
-	//TableItem,
-	//TableHeading,
+	Math,
+	MathBlock,
+	Table,
+	TableRow,
+	TableData,
+	TableHeader,
 	Paragraph,
 	Scenebreak,
 	Null,
-	Broken,
+	Broken(Box<GroupType>, &'static str),
 	Document,
 	Anchor
 }

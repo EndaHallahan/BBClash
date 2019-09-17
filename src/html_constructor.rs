@@ -6,12 +6,16 @@ use super::ASTElement;
 /// Struct for generation of HTML strings.
 pub struct HTMLConstructor {
 	output_string: String,
+	pretty_print: bool,
 }
 impl HTMLConstructor {
 	/// Creates a new HTMLConstructor.
-	pub fn new (out_len: usize) -> HTMLConstructor {
+	pub fn new (out_len: usize, pretty_print: bool) -> HTMLConstructor {
 		let output_string = String::with_capacity(out_len + out_len/2);
-		HTMLConstructor{output_string}
+		HTMLConstructor {
+			output_string, 
+			pretty_print,
+		}
 	}
 
 	/// Generates an HTML string from an ASTElement
@@ -50,6 +54,17 @@ impl HTMLConstructor {
 			GroupType::Scenebreak => {self.output_string.push_str("<br><br><br>")},
 			GroupType::Center => {self.output_string.push_str("<div class=\"center\">")},
 			GroupType::Right => {self.output_string.push_str("<div class=\"right\">")},
+			GroupType::Pre => {self.output_string.push_str("<pre>")},
+			GroupType::Code => {self.output_string.push_str("<code>")},
+			GroupType::Table => {self.output_string.push_str("<table>")},
+			GroupType::TableRow => {self.output_string.push_str("<tr>")},
+			GroupType::TableHeader => {self.output_string.push_str("<th>")},
+			GroupType::TableData => {self.output_string.push_str("<td>")},
+			GroupType::Header => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<h{}>", arg));
+				}
+			},
 			GroupType::Colour => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<span style=\"color:{};\">", arg));
@@ -58,6 +73,11 @@ impl HTMLConstructor {
 			GroupType::Url => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<a href=\"{}\" rel=\"nofollow\">", arg));
+				}	
+			},
+			GroupType::Email => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<a href=\"{}\">", arg));
 				}	
 			},
 			GroupType::Opacity => {
@@ -75,11 +95,65 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<img src=\"{}\">", arg));
 				}
 			},
+			GroupType::Figure => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<figure class=\"figure-{}\">", arg));
+				}
+			},
 			GroupType::Quote => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<blockquote data-author=\"{}\">", arg));
 				} else {
 					self.output_string.push_str(&format!("<blockquote>"));
+				}
+			},
+			GroupType::Footnote => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<span class=\"footnote\" data-symbol=\"{}\">", arg));
+				} else {
+					self.output_string.push_str(&format!("<span class=\"footnote\">"));
+				}
+			},
+			GroupType::CodeBlock => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<pre data-language=\"{}\">", arg));
+				} else {
+					self.output_string.push_str(&format!("<pre>"));
+				}
+			},
+			GroupType::List => {
+				if let Some(arg) = element.argument() {
+					match arg as &str {
+						"1" | "a" | "A" | "i" | "I" => {
+							self.output_string.push_str(&format!("<ol type=\"{}\">", arg));
+						},
+						"circle" | "square" | "none" => {
+							self.output_string.push_str(&format!("<ul style=\"list-style-type:{};\">", arg));
+						},
+						_ => {self.output_string.push_str("<ul>")}
+					}
+				} else {
+					self.output_string.push_str("<ul>")
+				}
+			},
+			GroupType::Indent => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<div class=\"indent-{}\">", arg));
+				}
+			},
+			GroupType::ListItem => {self.output_string.push_str("<li>")},
+			GroupType::Math => {self.output_string.push_str("<span class=\"math_container\">")},
+			GroupType::MathBlock => {self.output_string.push_str("<div class=\"math_container\">")},
+			GroupType::Embed => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<div class=\"embed\" data-content=\"{}\">", arg));
+				}	
+			},
+			GroupType::Broken(_, tag) if !self.pretty_print => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("[{}={}]", tag, arg));
+				} else {
+					self.output_string.push_str(&format!("[{}]", tag));
 				}
 			},
 			_ => return
@@ -97,19 +171,55 @@ impl HTMLConstructor {
 			GroupType::Subscript => {self.output_string.push_str("</sub>")},
 			GroupType::Superscript => {self.output_string.push_str("</sup>")},
 			GroupType::Strikethrough => {self.output_string.push_str("</s>")},
-			GroupType::Url => {self.output_string.push_str("</a>")},
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
+			GroupType::Code => {self.output_string.push_str("</code>")},
+			GroupType::Figure => {self.output_string.push_str("</figure>")},
+			GroupType::Table => {self.output_string.push_str("</table>")},
+			GroupType::TableRow => {self.output_string.push_str("</tr>")},
+			GroupType::TableHeader => {self.output_string.push_str("</th>")},
+			GroupType::TableData => {self.output_string.push_str("</td>")},
+			GroupType::List => {
+				if let Some(arg) = element.argument() {
+					match arg as &str{
+						"1" | "a" | "A" | "i" | "I" => {self.output_string.push_str("</ol>")},
+						"circle" | "square" | "none" => {self.output_string.push_str("</ul>")},
+						_ => {self.output_string.push_str("</ul>")}
+					}
+				} else {
+					self.output_string.push_str("</ul>")
+				}
+			},
+			GroupType::ListItem => {self.output_string.push_str("</li>")},
+			GroupType::Header => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("</h{}>", arg));
+				}
+			},
+			GroupType::Url |
+			GroupType::Email 
+				=> {self.output_string.push_str("</a>")},
+			GroupType::Pre |
+			GroupType::CodeBlock
+				=> {self.output_string.push_str("</pre>")},
 			GroupType::Underline |
 			GroupType::Smallcaps |
 			GroupType::Monospace |
 			GroupType::Spoiler |
 			GroupType::Colour |
 			GroupType::Opacity |
-			GroupType::Size
+			GroupType::Size |
+			GroupType::Footnote |
+			GroupType::Math
 				=> {self.output_string.push_str("</span>")},
 			GroupType::Center |
-			GroupType::Right
+			GroupType::Right |
+			GroupType::Indent |
+			GroupType::MathBlock |
+			GroupType::Embed
 				=> {self.output_string.push_str("</div>")}
+			GroupType::Broken(_, tag) if !self.pretty_print => {
+				self.output_string.push_str(&format!("[/{}]", tag));
+			},
 			_ => return
 		};
 	}
