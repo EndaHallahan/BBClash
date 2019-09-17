@@ -34,6 +34,11 @@ fn url_no_argument() {
     	"<p><a href=\"https://www.penclash.com\" rel=\"nofollow\">https://www.penclash.com</a></p>");
 }
 #[test]
+fn url_no_argument_no_text() {
+    assert_eq!(bbcode_to_html("[url][/url]This should not be a link."), 
+        "<p>This should not be a link.</p>");
+}
+#[test]
 fn url_https_arg() {
     assert_eq!(bbcode_to_html("[url=https://www.penclash.com]This should be a link[/url]"), 
     	"<p><a href=\"https://www.penclash.com\" rel=\"nofollow\">This should be a link</a></p>");
@@ -444,9 +449,28 @@ fn math() {
         "<p><span class=\"math_container\">Some TeX code</span></p>");
 }
 
-/*-- MATH --*/
+/*-- MATHBLOCK --*/
 #[test]
 fn mathblock() {
     assert_eq!(bbcode_to_html("[mathblock]Some TeX code[/mathblock]"), 
         "<div class=\"math_container\">Some TeX code</div>");
+}
+
+/*-- EMBED --*/
+#[test]
+fn embed() {
+    assert_eq!(bbcode_to_html("[embed]https://www.penclash.com[/embed]"), 
+        "<div class=\"embed\" data-content=\"https://www.penclash.com\"></div>");
+}
+
+/*-- EMAIL --*/
+#[test]
+fn email() {
+    assert_eq!(bbcode_to_html("[email]test@penclash.com[/email]"), 
+        "<p><a href=\"mailto:test@penclash.com\">test@penclash.com</a></p>");
+}
+#[test]
+fn email_no_text() {
+    assert_eq!(bbcode_to_html("[url][/url]This should not be a link."), 
+        "<p>This should not be a link.</p>");
 }

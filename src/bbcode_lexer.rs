@@ -477,6 +477,20 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Url);
 	}
 
+	fn cmd_email_open(&mut self) {
+		self.next_text_as_arg = Some(BBCodeLexer::cmd_email_arg);
+		self.new_group(GroupType::Email);
+	}
+	fn cmd_email_arg(&mut self, arg: &String) {
+		self.current_node.borrow_mut().set_arg(&format!("mailto:{}", arg));
+		self.new_group(GroupType::Text);
+		self.current_node.borrow_mut().add_text(arg);
+		self.end_group(GroupType::Text);
+	}
+	fn cmd_email_close(&mut self) {
+		self.end_group(GroupType::Email);
+	}
+
 	fn cmd_img_open(&mut self) {
 		self.next_text_as_arg = Some(BBCodeLexer::cmd_img_arg);
 		self.new_group(GroupType::Image);
@@ -666,6 +680,29 @@ impl BBCodeLexer {
 	fn cmd_figure_close(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.end_and_new_group(GroupType::Figure, GroupType::Paragraph);
+	}
+
+	fn cmd_embed_open(&mut self) {
+		self.next_text_as_arg = Some(BBCodeLexer::cmd_embed_arg);
+		self.end_and_new_group(GroupType::Paragraph, GroupType::Embed);
+		self.current_node.borrow_mut().set_void(true);
+	}
+	fn cmd_embed_arg(&mut self, arg: &String) {
+		if arg.starts_with("https://") || arg.starts_with("http://") {
+			self.current_node.borrow_mut().set_arg(arg);
+		} else {
+			for c in arg.chars() {
+				if FORBIDDEN_URL_CHARS.contains(&c) {
+					self.new_group(GroupType::Broken(Box::new(GroupType::Embed), "embed"));
+					self.current_node.borrow_mut().set_arg(arg);
+					return;
+				}
+			}
+			self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
+		}
+	}
+	fn cmd_embed_close(&mut self) {
+		self.end_and_new_group(GroupType::Embed, GroupType::Paragraph);
 	}
 
 	fn cmd_list_bare_open(&mut self) {
@@ -881,6 +918,10 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/math" => BBCodeLexer::cmd_math_close,
 	"mathblock" => BBCodeLexer::cmd_mathblock_open,
 	"/mathblock" => BBCodeLexer::cmd_mathblock_close,
+	"embed" => BBCodeLexer::cmd_embed_open,
+	"/embed" => BBCodeLexer::cmd_embed_close,
+	"email" => BBCodeLexer::cmd_email_open,
+	"/email" => BBCodeLexer::cmd_email_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {

@@ -73,6 +73,11 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("<a href=\"{}\" rel=\"nofollow\">", arg));
 				}	
 			},
+			GroupType::Email => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<a href=\"{}\">", arg));
+				}	
+			},
 			GroupType::Opacity => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<span style=\"opacity:{};\">", arg));
@@ -137,6 +142,11 @@ impl HTMLConstructor {
 			GroupType::ListItem => {self.output_string.push_str("<li>")},
 			GroupType::Math => {self.output_string.push_str("<span class=\"math_container\">")},
 			GroupType::MathBlock => {self.output_string.push_str("<div class=\"math_container\">")},
+			GroupType::Embed => {
+				if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("<div class=\"embed\" data-content=\"{}\">", arg));
+				}	
+			},
 			GroupType::Broken(_, tag) if PRETTY_PRINT => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("[{}={}]", tag, arg));
@@ -159,7 +169,6 @@ impl HTMLConstructor {
 			GroupType::Subscript => {self.output_string.push_str("</sub>")},
 			GroupType::Superscript => {self.output_string.push_str("</sup>")},
 			GroupType::Strikethrough => {self.output_string.push_str("</s>")},
-			GroupType::Url => {self.output_string.push_str("</a>")},
 			GroupType::Quote => {self.output_string.push_str("</blockquote>")},
 			GroupType::Code => {self.output_string.push_str("</code>")},
 			GroupType::Figure => {self.output_string.push_str("</figure>")},
@@ -184,6 +193,9 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("</h{}>", arg));
 				}
 			},
+			GroupType::Url |
+			GroupType::Email 
+				=> {self.output_string.push_str("</a>")},
 			GroupType::Pre |
 			GroupType::CodeBlock
 				=> {self.output_string.push_str("</pre>")},
@@ -200,7 +212,8 @@ impl HTMLConstructor {
 			GroupType::Center |
 			GroupType::Right |
 			GroupType::Indent |
-			GroupType::MathBlock
+			GroupType::MathBlock |
+			GroupType::Embed
 				=> {self.output_string.push_str("</div>")}
 			GroupType::Broken(_, tag) if PRETTY_PRINT => {
 				self.output_string.push_str(&format!("[/{}]", tag));
