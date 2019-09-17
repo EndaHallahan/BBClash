@@ -113,6 +113,101 @@ impl BBCodeLexer {
 		self.current_node.append(Node::new(ASTElement::new(ele_type)));
 		self.current_node = self.current_node.last_child().unwrap();
 	}
+	// Closes groups when the current group is the target group.
+	fn close_same_group(&mut self) {
+		match self.current_node.parent() {
+			None => {},
+			Some(parent) => {
+				if !self.current_node.has_children()
+				&& (
+					!self.ignore_formatting &&
+					if let Some(text) = self.current_node.borrow().text_contents() {
+						text.trim().len() == 0
+					} else {
+						true
+					}
+				)
+				&& !self.current_node.borrow().is_void() {
+					self.current_node.detach();
+				}
+				self.current_node = parent;
+			}
+		};
+	}
+	// Closes groups when the current group is not the target group.
+	fn close_diff_group(&mut self, group_stack: &mut Vec<GroupShorthand>, ele_type: GroupType) {
+		let mut go = true;
+		while go {
+			let my_type = self.current_node.borrow_mut().ele_type().clone();
+			match my_type {
+				GroupType::Paragraph if ele_type != GroupType::Paragraph => {
+					go = false;
+					if !self.current_node.has_children() {
+						self.current_node.detach();
+					}
+				},
+				GroupType::List if ele_type != GroupType::List => {
+					go = false;
+				},
+				GroupType::Document if ele_type != GroupType::Document => {
+					go = false;
+				},
+				_ => {
+					if my_type == ele_type {
+						go = false;
+					} else {
+						if let GroupType::Broken(some_box, _) = my_type.clone() {
+							let unpacked_type = *some_box;
+							if unpacked_type == ele_type {
+								go = false;
+							} else {
+								group_stack.push(GroupShorthand {
+									ele_type: my_type, 
+									arg: self.current_node.borrow_mut().argument().clone()
+								});
+							}
+						} else {
+							group_stack.push(GroupShorthand {
+								ele_type: my_type, 
+								arg: self.current_node.borrow_mut().argument().clone()
+							});
+						}
+						
+					}
+					match self.current_node.parent() {
+						None => {
+							go = false;
+						},
+						Some(parent) => {
+							if !self.current_node.has_children()
+							&& (
+								!self.ignore_formatting &&
+								if let Some(text) = self.current_node.borrow().text_contents() {
+									text.trim().len() == 0
+								} else {
+									true
+								}
+							)
+							&& !self.current_node.borrow().is_void() {
+								self.current_node.detach();
+							}
+							self.current_node = parent;
+						}
+					};
+				}
+			}
+		}
+	}
+	// Reopens closed groups after another element has closed.
+	fn reopen_groups(&mut self, group_stack: &mut Vec<GroupShorthand>) {
+		while group_stack.len() > 0 {
+			let group = group_stack.pop().unwrap();
+			self.new_group(group.ele_type.clone());
+			if let Some(arg) = group.arg {
+				self.current_node.borrow_mut().set_arg(&arg);
+			}
+		}
+	}
 	/// Moves current working node up to the current node's parent and then creates a new element, 
 	/// preserving the formatting from the previous.
 	fn end_and_new_group(&mut self, ele_type: GroupType, new_type: GroupType) {
@@ -122,96 +217,30 @@ impl BBCodeLexer {
 			}
 		}
 		if self.current_node.borrow_mut().ele_type() == &ele_type {
-			match self.current_node.parent() {
-				None => {},
-				Some(parent) => {
-					if !self.current_node.has_children()
-					&& (
-						!self.ignore_formatting &&
-						if let Some(text) = self.current_node.borrow().text_contents() {
-							text.trim().len() == 0
-						} else {
-							true
-						}
-					)
-					&& !self.current_node.borrow().is_void() {
-						self.current_node.detach();
-					}
-					self.current_node = parent;
-				}
-			};
+			self.close_same_group();
 			self.new_group(new_type);
 		} else {
 			let mut group_stack = Vec::new();
-			let mut go = true;
-			while go {
-				let my_type = self.current_node.borrow_mut().ele_type().clone();
-				match my_type {
-					GroupType::Paragraph if ele_type != GroupType::Paragraph => {
-						go = false;
-						if !self.current_node.has_children() {
-							self.current_node.detach();
-						}
-					},
-					GroupType::List if ele_type != GroupType::List => {
-						go = false;
-					},
-					GroupType::Document if ele_type != GroupType::Document => {
-						go = false;
-					},
-					_ => {
-						if my_type == ele_type {
-							go = false;
-						} else {
-							if let GroupType::Broken(some_box, _) = my_type.clone() {
-								let unpacked_type = *some_box;
-								if unpacked_type == ele_type {
-									go = false;
-								} else {
-									group_stack.push(GroupShorthand {
-										ele_type: my_type, 
-										arg: self.current_node.borrow_mut().argument().clone()
-									});
-								}
-							} else {
-								group_stack.push(GroupShorthand {
-									ele_type: my_type, 
-									arg: self.current_node.borrow_mut().argument().clone()
-								});
-							}
-							
-						}
-						match self.current_node.parent() {
-							None => {
-								go = false;
-							},
-							Some(parent) => {
-								if !self.current_node.has_children()
-								&& (
-									!self.ignore_formatting &&
-									if let Some(text) = self.current_node.borrow().text_contents() {
-										text.trim().len() == 0
-									} else {
-										true
-									}
-								)
-								&& !self.current_node.borrow().is_void() {
-									self.current_node.detach();
-								}
-								self.current_node = parent;
-							}
-						};
-					}
-				}
-			}
+			self.close_diff_group(&mut group_stack, ele_type);
 			self.new_group(new_type);
-			while group_stack.len() > 0 {
-				let group = group_stack.pop().unwrap();
-				self.new_group(group.ele_type.clone());
-				if let Some(arg) = group.arg {
-					self.current_node.borrow_mut().set_arg(&arg);
-				}
+			self.reopen_groups(&mut group_stack);
+		}	
+	}
+	/// Moves current working node up to the current node's parent and then creates a new element, 
+	/// *without* preserving formatting from the previous element.
+	fn end_and_kill_new_group(&mut self, ele_type: GroupType, new_type: GroupType) {
+		if let Some(mut kid) = self.current_node.last_child() {
+			if kid.borrow().ele_type() == &GroupType::Br {
+				kid.detach();
 			}
+		}
+		if self.current_node.borrow_mut().ele_type() == &ele_type {
+			self.close_same_group();
+			self.new_group(new_type);
+		} else {
+			let mut group_stack = Vec::new();
+			self.close_diff_group(&mut group_stack, ele_type);
+			self.new_group(new_type);
 		}	
 	}
 	/// Moves current working node up to the current node's parent.
@@ -222,94 +251,11 @@ impl BBCodeLexer {
 			}
 		}
 		if self.current_node.borrow_mut().ele_type() == &ele_type {
-			match self.current_node.parent() {
-				None => {},
-				Some(parent) => {
-					if !self.current_node.has_children()
-					&& (
-						!self.ignore_formatting &&
-						if let Some(text) = self.current_node.borrow().text_contents() {
-							text.trim().len() == 0
-						} else {
-							true
-						}
-					)
-					&& !self.current_node.borrow().is_void() {
-						self.current_node.detach();
-					}
-					self.current_node = parent;
-				}
-			};
+			self.close_same_group();
 		} else {
 			let mut group_stack = Vec::new();
-			let mut go = true;
-			while go {
-				let my_type = self.current_node.borrow_mut().ele_type().clone();
-				match my_type {
-					GroupType::Paragraph if ele_type != GroupType::Paragraph => {
-						go = false;
-						if !self.current_node.has_children() {
-							self.current_node.detach();
-						}
-					},
-					GroupType::List if ele_type != GroupType::List => {
-						go = false;
-					},
-					GroupType::Document if ele_type != GroupType::Document => {
-						go = false;
-					},
-					_ => {
-						if my_type == ele_type {
-							go = false;
-						} else {
-							if let GroupType::Broken(some_box, _) = my_type.clone() {
-								let unpacked_type = *some_box;
-								if unpacked_type == ele_type {
-									go = false;
-								} else {
-									group_stack.push(GroupShorthand {
-										ele_type: my_type, 
-										arg: self.current_node.borrow_mut().argument().clone()
-									});
-								}
-							} else {
-								group_stack.push(GroupShorthand {
-									ele_type: my_type, 
-									arg: self.current_node.borrow_mut().argument().clone()
-								});
-							}
-							
-						}
-						match self.current_node.parent() {
-							None => {
-								go = false;
-							},
-							Some(parent) => {
-								if !self.current_node.has_children()
-								&& (
-									!self.ignore_formatting &&
-									if let Some(text) = self.current_node.borrow().text_contents() {
-										text.trim().len() == 0
-									} else {
-										true
-									}
-								)
-								&& !self.current_node.borrow().is_void() {
-									self.current_node.detach();
-								}
-								self.current_node = parent;
-							}
-						};
-					}
-				}
-			}
-			while group_stack.len() > 0 {
-				let group = group_stack.pop().unwrap();
-				self.new_group(group.ele_type.clone());
-				if let Some(arg) = group.arg {
-					self.current_node.borrow_mut().set_arg(&arg);
-				}
-			}
+			self.close_diff_group(&mut group_stack, ele_type);
+			self.reopen_groups(&mut group_stack);
 		}	
 	}
 	/// Parses tag Instructions.
@@ -691,12 +637,12 @@ impl BBCodeLexer {
 	}
 
 	fn cmd_codeblock_bare_open(&mut self) {
-		self.end_and_new_group(GroupType::Paragraph, GroupType::CodeBlock);
+		self.end_and_kill_new_group(GroupType::Paragraph, GroupType::CodeBlock);
 		self.ignore_tags = Some("/codeblock");
 		self.ignore_formatting = true;
 	}
 	fn cmd_codeblock_open(&mut self, arg: &String) {
-		self.end_and_new_group(GroupType::Paragraph, GroupType::CodeBlock);
+		self.end_and_kill_new_group(GroupType::Paragraph, GroupType::CodeBlock);
 		self.ignore_tags = Some("/codeblock");
 		self.ignore_formatting = true;
 		self.current_node.borrow_mut().set_arg(arg);
@@ -775,6 +721,28 @@ impl BBCodeLexer {
 	fn cmd_table_data_close(&mut self) {
 		self.end_group(GroupType::Paragraph);
 		self.end_group(GroupType::TableData);
+	}
+
+	fn cmd_math_open(&mut self) {
+		self.new_group(GroupType::Math);
+		self.ignore_tags = Some("/math");
+		self.ignore_formatting = true;
+	}
+	fn cmd_math_close(&mut self) {
+		self.end_group(GroupType::Math);
+		self.ignore_tags = None;
+		self.ignore_formatting = false;
+	}
+
+	fn cmd_mathblock_open(&mut self) {
+		self.end_and_kill_new_group(GroupType::Paragraph, GroupType::MathBlock);
+		self.ignore_tags = Some("/mathblock");
+		self.ignore_formatting = true;
+	}
+	fn cmd_mathblock_close(&mut self) {
+		self.ignore_tags = Some("/mathblock");
+		self.ignore_formatting = false;
+		self.end_and_new_group(GroupType::MathBlock, GroupType::Paragraph);
 	}
 
 	fn cmd_hr(&mut self) {
@@ -909,6 +877,10 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/pre-line" => BBCodeLexer::cmd_preline_close,
 	"indent" => BBCodeLexer::cmd_indent_bare_open,
 	"/indent" => BBCodeLexer::cmd_indent_close,
+	"math" => BBCodeLexer::cmd_math_open,
+	"/math" => BBCodeLexer::cmd_math_close,
+	"mathblock" => BBCodeLexer::cmd_mathblock_open,
+	"/mathblock" => BBCodeLexer::cmd_mathblock_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {

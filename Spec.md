@@ -4,7 +4,7 @@ This document aims to create a standard specification for basic Penclash-flavour
 
 # Goals
 
-Penclash-flavoured BBCode aims to be simple to use, easy to understnd, and quick to write, while still providing users with enough options to be able to achieve most desired formatting needs.
+Penclash-flavoured BBCode aims to be simple to use, easy to understand, and quick to write, while still providing users with enough options to be able to achieve most desired formatting needs.
 
 Penclash-flavoured BBCode also aims to be as semantic as possible, giving end applications freedom to style content as needed.
 

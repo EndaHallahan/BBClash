@@ -436,3 +436,17 @@ fn indent_bad_arg() {
     assert_eq!(bbcode_to_html("[indent=7]To be, or not to be.[/indent]"), 
         "<p>To be, or not to be.</p>");
 }
+
+/*-- MATH --*/
+#[test]
+fn math() {
+    assert_eq!(bbcode_to_html("[math]Some TeX code[/math]"), 
+        "<p><span class=\"math_container\">Some TeX code</span></p>");
+}
+
+/*-- MATH --*/
+#[test]
+fn mathblock() {
+    assert_eq!(bbcode_to_html("[mathblock]Some TeX code[/mathblock]"), 
+        "<div class=\"math_container\">Some TeX code</div>");
+}

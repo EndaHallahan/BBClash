@@ -135,6 +135,8 @@ impl HTMLConstructor {
 				}
 			},
 			GroupType::ListItem => {self.output_string.push_str("<li>")},
+			GroupType::Math => {self.output_string.push_str("<span class=\"math_container\">")},
+			GroupType::MathBlock => {self.output_string.push_str("<div class=\"math_container\">")},
 			GroupType::Broken(_, tag) if PRETTY_PRINT => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("[{}={}]", tag, arg));
@@ -192,11 +194,13 @@ impl HTMLConstructor {
 			GroupType::Colour |
 			GroupType::Opacity |
 			GroupType::Size |
-			GroupType::Footnote
+			GroupType::Footnote |
+			GroupType::Math
 				=> {self.output_string.push_str("</span>")},
 			GroupType::Center |
 			GroupType::Right |
-			GroupType::Indent
+			GroupType::Indent |
+			GroupType::MathBlock
 				=> {self.output_string.push_str("</div>")}
 			GroupType::Broken(_, tag) if PRETTY_PRINT => {
 				self.output_string.push_str(&format!("[/{}]", tag));
