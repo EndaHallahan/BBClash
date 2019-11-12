@@ -227,6 +227,7 @@ pub enum GroupType{
 	TableRow,
 	TableData,
 	TableHeader,
+	TableCaption,
 	Paragraph,
 	Scenebreak,
 	Null,

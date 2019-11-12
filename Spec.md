@@ -378,12 +378,13 @@ List and its subordinate tag List Item create lists. Lists can be nested. Lists 
 
 
 
-## Table, Table Row, Table Data, and Table Header
+## Table, Table Row, Table Data, Table Header, and Caption
 
 Table and its subordinate tags create tables.
 
 #### Tag:
 	[table]
+		[caption]{table caption}[/caption]
 		[tr]
 			[th]{table header 1}[/th]
 			[th]{table header 2}[/th]
@@ -396,6 +397,7 @@ Table and its subordinate tags create tables.
 
 #### Yields:
 	<table>
+		<caption>{table caption}</caption>
 		<tr>
 			<th>{table header 1}</th>
 			<th>{table header 2}</th>

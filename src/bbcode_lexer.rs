@@ -768,6 +768,14 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Paragraph);
 		self.end_group(GroupType::TableData);
 	}
+	fn cmd_table_caption_open(&mut self) {
+		self.new_group(GroupType::TableCaption);
+		self.new_group(GroupType::Paragraph);
+	}
+	fn cmd_table_caption_close(&mut self) {
+		self.end_group(GroupType::Paragraph);
+		self.end_group(GroupType::TableCaption);
+	}
 
 	fn cmd_math_open(&mut self) {
 		self.new_group(GroupType::Math);
@@ -923,6 +931,8 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/th" => BBCodeLexer::cmd_table_header_close,
 	"td" => BBCodeLexer::cmd_table_data_open,
 	"/td" => BBCodeLexer::cmd_table_data_close,
+	"caption" => BBCodeLexer::cmd_table_caption_open,
+	"/caption" => BBCodeLexer::cmd_table_caption_close,
 	"pre-line" => BBCodeLexer::cmd_preline_open,
 	"/pre-line" => BBCodeLexer::cmd_preline_close,
 	"indent" => BBCodeLexer::cmd_indent_bare_open,

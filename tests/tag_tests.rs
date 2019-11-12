@@ -411,6 +411,7 @@ fn nested_simple_list() {
 fn table() {
     assert_eq!(bbcode_to_html("
         [table]
+        [caption]Macbeth[/caption]
         [tr]
             [th]To be[/th]
             [th]or not to be[/th]
@@ -420,7 +421,7 @@ fn table() {
             [td]the question[/td]
         [/tr]
     [/table]"), 
-        "<table><tr><th><p>To be</p></th><th><p>or not to be</p></th></tr><tr><td><p>that is</p></td><td><p>the question</p></td></tr></table>");
+        "<table><caption><p>Macbeth</p></caption><tr><th><p>To be</p></th><th><p>or not to be</p></th></tr><tr><td><p>that is</p></td><td><p>the question</p></td></tr></table>");
 }
 
 /*-- PRE-LINE --*/
@@ -471,6 +472,6 @@ fn email() {
 }
 #[test]
 fn email_no_text() {
-    assert_eq!(bbcode_to_html("[url][/url]This should not be a link."), 
+    assert_eq!(bbcode_to_html("[email][/email]This should not be a link."), 
         "<p>This should not be a link.</p>");
 }
