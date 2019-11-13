@@ -69,7 +69,7 @@ pub use crate::html_constructor::HTMLConstructor;
 #[no_mangle]
 pub extern fn bbcode_to_html(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
-	let mut lexer = BBCodeLexer::new();
+	let mut lexer = BBCodeLexer::new(false);
 	let mut constructor = HTMLConstructor::new(input.len(), true);
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
 }
@@ -87,7 +87,7 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 #[no_mangle]
 pub extern fn bbcode_to_html_ugly(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
-	let mut lexer = BBCodeLexer::new();
+	let mut lexer = BBCodeLexer::new(true);
 	let mut constructor = HTMLConstructor::new(input.len(), false);
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
 }
@@ -99,6 +99,8 @@ pub struct ASTElement {
 	text_contents: Option<String>,
 	argument: Option<String>,
 	is_void: bool,
+	detachable: bool,
+	broken: bool,
 }
 impl ASTElement {
 	/// Creates a new ASTElement.
@@ -106,10 +108,19 @@ impl ASTElement {
 		let text_contents = None;
 		let argument = None;
 		let is_void = false;
-		ASTElement{ele_type, text_contents, argument, is_void}
+		let detachable = true;
+		let broken = match ele_type {
+			GroupType::Broken(_,_) => true,
+			_ => false
+		};
+		ASTElement{ele_type, text_contents, argument, is_void, detachable, broken}
 	}
 	/// Sets an ASTElement's type.
 	pub fn set_ele_type(&mut self, new_type: GroupType) {
+		self.broken = match new_type {
+			GroupType::Broken(_,_) => true,
+			_ => false
+		};
 		self.ele_type = new_type;
 	}
 	/// Gets an immutable reference to an ASTElement's type.
@@ -156,10 +167,9 @@ impl ASTElement {
 		} else {
 			self.argument = Some(new_arg.to_string());
 		}
-		
 	}
 	/// Gets whether or not an ASTElement has an argument.
-	pub fn has_arg(&mut self) -> bool {
+	pub fn has_arg(&self) -> bool {
 		if let Some(_) = &self.argument {
 			true
 		} else {
@@ -169,6 +179,18 @@ impl ASTElement {
 	/// Gets an immutable reference to an ASTElement's argument field.
 	pub fn argument(&self) -> &Option<String> {
 		&self.argument
+	}
+	/// Sets an ASTElement's detachable field (indicates whether the element should be detatched if empty);
+	pub fn set_detachable(&mut self, in_det: bool) {
+		self.detachable = in_det;
+	}
+	/// gets the value of an ASTElement's detachable field.
+	pub fn is_detachable(&self) -> bool {
+		self.detachable
+	}
+
+	pub fn is_broken(&self) -> bool {
+		self.broken
 	}
 }
 

@@ -31,6 +31,8 @@ impl HTMLConstructor {
 
 	/// Opens an HTML tag.
 	fn start_element(&mut self, element: Ref<ASTElement>) {
+		println!("Open: {:?}", element.ele_type());
+		println!("Broken: {:?}", element.broken);
 		match element.ele_type() {
 			GroupType::Text => {
 				if let Some(text) = element.text_contents() {
@@ -151,10 +153,18 @@ impl HTMLConstructor {
 				}	
 			},
 			GroupType::Broken(_, tag) if !self.pretty_print => {
-				if let Some(arg) = element.argument() {
-					self.output_string.push_str(&format!("[{}={}]", tag, arg));
+				if let Some(text) = element.text_contents() {
+					if let Some(arg) = element.argument() {
+						self.output_string.push_str(&format!("[{}={}]{}", tag, arg, text));
+					} else {
+						self.output_string.push_str(&format!("[{}]{}", tag, text));
+					}
 				} else {
-					self.output_string.push_str(&format!("[{}]", tag));
+					if let Some(arg) = element.argument() {
+						self.output_string.push_str(&format!("[{}={}]", tag, arg));
+					} else {
+						self.output_string.push_str(&format!("[{}]", tag));
+					}
 				}
 			},
 			_ => return
@@ -163,6 +173,7 @@ impl HTMLConstructor {
 
 	/// Closes an HTML tag.
 	fn end_element(&mut self, element: Ref<ASTElement>) {
+		println!("Close: {:?}", element.ele_type());
 		match element.ele_type() {
 			GroupType::Paragraph => {self.output_string.push_str("</p>")},
 			GroupType::Bold => {self.output_string.push_str("</b>")},
@@ -220,7 +231,9 @@ impl HTMLConstructor {
 			GroupType::Embed
 				=> {self.output_string.push_str("</div>")}
 			GroupType::Broken(_, tag) if !self.pretty_print => {
-				self.output_string.push_str(&format!("[/{}]", tag));
+				if !element.is_void() {
+					self.output_string.push_str(&format!("[/{}]", tag));
+				}	
 			},
 			_ => return
 		};

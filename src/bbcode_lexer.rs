@@ -11,11 +11,12 @@ pub struct BBCodeLexer {
 	next_text_as_arg: Option<fn(&mut BBCodeLexer, &String)>,
 	ignore_tags: Option<&'static str>,
 	ignore_formatting: bool,
-	linebreaks_allowed: bool
+	linebreaks_allowed: bool,
+	preserve_broken: bool
 }
 impl BBCodeLexer {
 	/// Creates a new BBCodeLexer.
-	pub fn new() -> BBCodeLexer {
+	pub fn new(preserve_broken: bool) -> BBCodeLexer {
 		BBCodeLexer {
 			anchor: Node::new(ASTElement::new(GroupType::Anchor)),
 			current_node: Node::new(ASTElement::new(GroupType::Document)),
@@ -23,6 +24,7 @@ impl BBCodeLexer {
 			ignore_tags: None,
 			ignore_formatting: false,
 			linebreaks_allowed: true,
+			preserve_broken
 		}
 	}
 	/// Lexes a vector of Instructions.
@@ -110,8 +112,9 @@ impl BBCodeLexer {
 	}
 	/// Creates a new ASTElement.
 	fn new_group(&mut self, ele_type: GroupType) {
-		self.current_node.append(Node::new(ASTElement::new(ele_type)));
+		self.current_node.append(Node::new(ASTElement::new(ele_type.clone())));
 		self.current_node = self.current_node.last_child().unwrap();
+
 	}
 	// Closes groups when the current group is the target group.
 	fn close_same_group(&mut self) {
@@ -127,8 +130,12 @@ impl BBCodeLexer {
 						true
 					}
 				)
-				&& !self.current_node.borrow().is_void() {
+				&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable()) {
 					self.current_node.detach();
+				} else {
+					if !self.preserve_broken && self.current_node.borrow().is_broken() && !self.current_node.has_children() {
+						self.current_node.detach();
+					}
 				}
 				self.current_node = parent;
 			}
@@ -138,7 +145,7 @@ impl BBCodeLexer {
 	fn close_diff_group(&mut self, group_stack: &mut Vec<GroupShorthand>, ele_type: GroupType) {
 		let mut go = true;
 		while go {
-			let my_type = self.current_node.borrow_mut().ele_type().clone();
+			let my_type = self.current_node.borrow().ele_type().clone();
 			match my_type {
 				GroupType::Paragraph if ele_type != GroupType::Paragraph => {
 					go = false;
@@ -160,19 +167,18 @@ impl BBCodeLexer {
 							let unpacked_type = *some_box;
 							if unpacked_type == ele_type {
 								go = false;
-							} else {
+							} else if unpacked_type != GroupType::ListItem {
 								group_stack.push(GroupShorthand {
 									ele_type: my_type, 
-									arg: self.current_node.borrow_mut().argument().clone()
+									arg: self.current_node.borrow().argument().clone()
 								});
 							}
 						} else {
 							group_stack.push(GroupShorthand {
 								ele_type: my_type, 
-								arg: self.current_node.borrow_mut().argument().clone()
+								arg: self.current_node.borrow().argument().clone()
 							});
 						}
-						
 					}
 					match self.current_node.parent() {
 						None => {
@@ -180,17 +186,21 @@ impl BBCodeLexer {
 						},
 						Some(parent) => {
 							if !self.current_node.has_children()
-							&& (
-								!self.ignore_formatting &&
-								if let Some(text) = self.current_node.borrow().text_contents() {
-									text.trim().len() == 0
-								} else {
-									true
-								}
-							)
-							&& !self.current_node.borrow().is_void() {
+								&& (
+									!self.ignore_formatting &&
+									if let Some(text) = self.current_node.borrow().text_contents() {
+										text.trim().len() == 0
+									} else {
+										true
+									}
+								)
+								&& !self.current_node.borrow().is_void() && self.current_node.borrow().is_detachable() {
 								self.current_node.detach();
-							}
+							} else {
+								if !self.preserve_broken && self.current_node.borrow().is_broken() && !self.current_node.has_children() {
+									self.current_node.detach();
+								}
+							} 
 							self.current_node = parent;
 						}
 					};
@@ -435,6 +445,22 @@ impl BBCodeLexer {
 	fn cmd_colour_bare_open(&mut self) {
 		self.new_group(GroupType::Broken(Box::new(GroupType::Colour), "colour"));
 	}
+	fn cmd_color_open(&mut self, arg: &String) {
+		if arg.starts_with("#") && arg.len() == 7 || arg.len() == 4 
+		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit()) {
+			self.new_group(GroupType::Colour);
+			self.current_node.borrow_mut().set_arg(arg);
+		} else if WEB_COLOURS.contains(arg.as_str()) {
+			self.new_group(GroupType::Colour);
+			self.current_node.borrow_mut().set_arg(arg);
+		} else {
+			self.new_group(GroupType::Broken(Box::new(GroupType::Colour), "color"));
+			self.current_node.borrow_mut().set_arg(arg);
+		}
+	}
+	fn cmd_color_bare_open(&mut self) {
+		self.new_group(GroupType::Broken(Box::new(GroupType::Colour), "color"));
+	}
 	fn cmd_colour_close(&mut self) {
 		self.end_group(GroupType::Colour);
 	}
@@ -449,8 +475,11 @@ impl BBCodeLexer {
 		} else {
 			for c in arg.chars() {
 				if FORBIDDEN_URL_CHARS.contains(&c) {
+					if self.current_node.borrow().ele_type() == &GroupType::Url {
+						self.end_group(GroupType::Url);
+					}
 					self.new_group(GroupType::Broken(Box::new(GroupType::Url), "url"));
-					self.current_node.borrow_mut().set_arg(arg);
+					self.current_node.borrow_mut().add_text(arg);
 					return;
 				}
 			}
@@ -477,6 +506,10 @@ impl BBCodeLexer {
 		}
 	}
 	fn cmd_url_close(&mut self) {
+		if !self.current_node.borrow().has_arg() && self.current_node.borrow().ele_type() == &GroupType::Url {
+			self.current_node.borrow_mut().set_ele_type(GroupType::Broken(Box::new(GroupType::Url), "url"));
+			self.current_node.borrow_mut().set_detachable(false);
+		} 
 		self.end_group(GroupType::Url);
 	}
 
@@ -491,6 +524,10 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Text);
 	}
 	fn cmd_email_close(&mut self) {
+		if !self.current_node.borrow().has_arg() && self.current_node.borrow().ele_type() == &GroupType::Email {
+			self.current_node.borrow_mut().set_ele_type(GroupType::Broken(Box::new(GroupType::Email), "email"));
+			self.current_node.borrow_mut().set_detachable(false);
+		} 
 		self.end_group(GroupType::Email);
 	}
 
@@ -508,26 +545,38 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().set_arg(arg);
 						self.end_group(GroupType::Image);
 					} else {
+						if self.current_node.borrow().ele_type() == &GroupType::Image {
+							self.end_group(GroupType::Image);
+						}
 						self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
+						self.current_node.borrow_mut().add_text(arg);
 						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 					}
 				} else {
+					if self.current_node.borrow().ele_type() == &GroupType::Image {
+						self.end_group(GroupType::Image);
+					}
 					self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
-						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+					self.current_node.borrow_mut().add_text(arg);
+					self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 				}
 			} else {
+				if self.current_node.borrow().ele_type() == &GroupType::Image {
+					self.end_group(GroupType::Image);
+				}
 				self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
-						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+				self.current_node.borrow_mut().add_text(arg);
+				self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 			}
 		} else {
 			for c in arg.chars() {
 				if FORBIDDEN_URL_CHARS.contains(&c) {
+					if self.current_node.borrow().ele_type() == &GroupType::Image {
+						self.end_group(GroupType::Image);
+					}
 					self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
-						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+					self.current_node.borrow_mut().add_text(arg);
+					self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 					return;
 				}
 			}
@@ -539,23 +588,36 @@ impl BBCodeLexer {
 						self.current_node.borrow_mut().set_arg(&format!("http://{}", arg));
 						self.end_group(GroupType::Image);
 					} else {
+						if self.current_node.borrow().ele_type() == &GroupType::Image {
+							self.end_group(GroupType::Image);
+						}
 						self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
+						self.current_node.borrow_mut().add_text(arg);
 						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 					}
 				} else {
+					if self.current_node.borrow().ele_type() == &GroupType::Image {
+						self.end_group(GroupType::Image);
+					}
 					self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
-						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+					self.current_node.borrow_mut().add_text(arg);
+					self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 				}
 			} else {
+				if self.current_node.borrow().ele_type() == &GroupType::Image {
+					self.end_group(GroupType::Image);
+				}
 				self.new_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
-						self.current_node.borrow_mut().set_arg(arg);
-						self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
+				self.current_node.borrow_mut().add_text(arg);
+				self.end_group(GroupType::Broken(Box::new(GroupType::Image), "img"));
 			}
 		}
 	}
 	fn cmd_img_close(&mut self) {
+		if !self.current_node.borrow().has_arg() && self.current_node.borrow().ele_type() == &GroupType::Image {
+			self.current_node.borrow_mut().set_ele_type(GroupType::Broken(Box::new(GroupType::Image), "img"));
+			self.current_node.borrow_mut().set_detachable(false);
+		} 
 		self.end_group(GroupType::Image);
 	}
 
@@ -733,9 +795,24 @@ impl BBCodeLexer {
 		self.linebreaks_allowed = true;
 	}
 	fn cmd_list_item(&mut self) {
-		self.end_group(GroupType::Paragraph);
-		self.end_and_new_group(GroupType::ListItem, GroupType::ListItem);
-		self.new_group(GroupType::Paragraph);
+		if self.current_node.borrow().ele_type() == &GroupType::List {
+			self.end_and_new_group(GroupType::ListItem, GroupType::ListItem);
+			self.new_group(GroupType::Paragraph);
+		} else if let Some(parent) = self.current_node.parent() {
+			if parent.borrow().ele_type() == &GroupType::ListItem {
+				if self.current_node.borrow_mut().ele_type() == &GroupType::Paragraph {
+					self.end_group(GroupType::Paragraph);
+				}
+				self.end_and_new_group(GroupType::ListItem, GroupType::ListItem);
+				self.new_group(GroupType::Paragraph);
+			} else {
+				self.new_group(GroupType::Broken(Box::new(GroupType::ListItem), "*"));
+				self.current_node.borrow_mut().set_void(true);
+			}
+		} else {
+			self.new_group(GroupType::Broken(Box::new(GroupType::ListItem), "*"));
+			self.current_node.borrow_mut().set_void(true);
+		}	
 	}
 
 	fn cmd_table_open(&mut self) {
@@ -747,33 +824,55 @@ impl BBCodeLexer {
 		self.linebreaks_allowed = true;
 	}
 	fn cmd_table_row_open(&mut self) {
-		self.new_group(GroupType::TableRow);
+		if self.current_node.borrow().ele_type() == &GroupType::Table {
+			self.new_group(GroupType::TableRow);
+		} else {
+			self.new_group(GroupType::Broken(Box::new(GroupType::TableRow), "tr"));
+		}	
 	}
 	fn cmd_table_row_close(&mut self) {
 		self.end_group(GroupType::TableRow);
 	}
 	fn cmd_table_header_open(&mut self) {
-		self.new_group(GroupType::TableHeader);
-		self.new_group(GroupType::Paragraph);
+		if self.current_node.borrow().ele_type() == &GroupType::TableRow {
+			self.new_group(GroupType::TableHeader);
+			self.new_group(GroupType::Paragraph);
+		} else {
+			self.new_group(GroupType::Broken(Box::new(GroupType::TableHeader), "th"));
+		}
 	}
 	fn cmd_table_header_close(&mut self) {
-		self.end_group(GroupType::Paragraph);
+		if self.current_node.borrow_mut().ele_type() == &GroupType::Paragraph {
+			self.end_group(GroupType::Paragraph);
+		}
 		self.end_group(GroupType::TableHeader);
 	}
 	fn cmd_table_data_open(&mut self) {
-		self.new_group(GroupType::TableData);
-		self.new_group(GroupType::Paragraph);
+		if self.current_node.borrow().ele_type() == &GroupType::TableRow {
+			self.new_group(GroupType::TableData);
+			self.new_group(GroupType::Paragraph);
+		} else {
+			self.new_group(GroupType::Broken(Box::new(GroupType::TableData), "td"));
+		}
 	}
 	fn cmd_table_data_close(&mut self) {
-		self.end_group(GroupType::Paragraph);
+		if self.current_node.borrow_mut().ele_type() == &GroupType::Paragraph {
+			self.end_group(GroupType::Paragraph);
+		}
 		self.end_group(GroupType::TableData);
 	}
 	fn cmd_table_caption_open(&mut self) {
-		self.new_group(GroupType::TableCaption);
-		self.new_group(GroupType::Paragraph);
+		if self.current_node.borrow().ele_type() == &GroupType::Table {
+			self.new_group(GroupType::TableCaption);
+			self.new_group(GroupType::Paragraph);
+		} else {
+			self.new_group(GroupType::Broken(Box::new(GroupType::TableCaption), "caption"));
+		}	
 	}
 	fn cmd_table_caption_close(&mut self) {
-		self.end_group(GroupType::Paragraph);
+		if self.current_node.borrow_mut().ele_type() == &GroupType::Paragraph {
+			self.end_group(GroupType::Paragraph);
+		}
 		self.end_group(GroupType::TableCaption);
 	}
 
@@ -885,7 +984,7 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/center" => BBCodeLexer::cmd_center_close,
 	"right" => BBCodeLexer::cmd_right_open,
 	"/right" => BBCodeLexer::cmd_right_close,
-	"color" => BBCodeLexer::cmd_colour_bare_open,
+	"color" => BBCodeLexer::cmd_color_bare_open,
 	"colour" => BBCodeLexer::cmd_colour_bare_open,
 	"/color" => BBCodeLexer::cmd_colour_close,
 	"/colour" => BBCodeLexer::cmd_colour_close,
@@ -948,7 +1047,7 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
 static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
-    "color" => BBCodeLexer::cmd_colour_open,
+    "color" => BBCodeLexer::cmd_color_open,
 	"colour" => BBCodeLexer::cmd_colour_open,
 	"url" => BBCodeLexer::cmd_url_open,
 	"opacity" => BBCodeLexer::cmd_opacity_open,

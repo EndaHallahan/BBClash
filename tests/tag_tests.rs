@@ -1,4 +1,5 @@
 use bbclash::bbcode_to_html;
+use bbclash::bbcode_to_html_ugly;
 
 /*-- COLOUR --*/
 #[test]
@@ -25,6 +26,61 @@ fn color_name_bad_arg() {
 fn color_hex_bad_arg() {
     assert_eq!(bbcode_to_html("[color=#$0ffdddd]This should be broken[/color]"), 
     	"<p>This should be broken</p>");
+}
+#[test]
+fn color_name_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[color=talapia]This should be broken[/color]"), 
+        "<p>[color=talapia]This should be broken[/color]</p>");
+}
+#[test]
+fn color_hex_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[color=#$0ffdddd]This should be broken[/color]"), 
+        "<p>[color=#$0ffdddd]This should be broken[/color]</p>");
+}
+#[test]
+fn color_no_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[color]This should not be coloured[/color]"), 
+        "<p>[color]This should not be coloured[/color]</p>");
+}
+#[test]
+fn colour_no_argument() {
+    assert_eq!(bbcode_to_html("[colour]This should not be coloured[/colour]"), 
+        "<p>This should not be coloured</p>");
+}
+#[test]
+fn colour_name_arg() {
+    assert_eq!(bbcode_to_html("[colour=red]This should be red[/colour]"), 
+        "<p><span style=\"color:red;\">This should be red</span></p>");
+}
+#[test]
+fn colour_hex_arg() {
+    assert_eq!(bbcode_to_html("[colour=#FF0000]This should be red[/colour]"), 
+        "<p><span style=\"color:#FF0000;\">This should be red</span></p>");
+}
+#[test]
+fn colour_name_bad_arg() {
+    assert_eq!(bbcode_to_html("[colour=talapia]This should be broken[/colour]"), 
+        "<p>This should be broken</p>");
+}
+#[test]
+fn colour_hex_bad_arg() {
+    assert_eq!(bbcode_to_html("[colour=#$0ffdddd]This should be broken[/colour]"), 
+        "<p>This should be broken</p>");
+}
+#[test]
+fn colour_name_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[colour=talapia]This should be broken[/colour]"), 
+        "<p>[colour=talapia]This should be broken[/colour]</p>");
+}
+#[test]
+fn colour_hex_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[colour=#$0ffdddd]This should be broken[/colour]"), 
+        "<p>[colour=#$0ffdddd]This should be broken[/colour]</p>");
+}
+#[test]
+fn colour_no_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[colour]This should not be coloured[/colour]"), 
+        "<p>[colour]This should not be coloured[/colour]</p>");
 }
 
 /*-- URL --*/
@@ -54,6 +110,11 @@ fn url_www_arg() {
     	"<p><a href=\"http://www.penclash.com\" rel=\"nofollow\">This should be a link</a></p>");
 }
 #[test]
+fn url_no_text() {
+    assert_eq!(bbcode_to_html("[url][/url]This should not be a link."), 
+        "<p>This should not be a link.</p>");
+}
+#[test]
 fn url_forbidden_char_arg() {
     assert_eq!(bbcode_to_html("[url=alert(\"Hacked!\");]This should not be a link[/url]"), 
     	"<p>This should not be a link</p>");
@@ -62,6 +123,41 @@ fn url_forbidden_char_arg() {
 fn url_bad_arg() {
     assert_eq!(bbcode_to_html("[url=javascript:get_ganked.js]This should not be a link[/url]"), 
     	"<p>This should not be a link</p>");
+}
+#[test]
+fn url_forbidden_char_no_arg() {
+    assert_eq!(bbcode_to_html("[url]alert(\"Hacked!\");[/url]"), 
+        "");
+}
+#[test]
+fn url_bad_no_arg() {
+    assert_eq!(bbcode_to_html("[url]javascript:get_ganked.js[/url]"), 
+        "");
+}
+#[test]
+fn url_no_text_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[url][/url]This should not be a link."), 
+        "<p>[url][/url]This should not be a link.</p>");
+}
+#[test]
+fn url_forbidden_char_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[url=alert(\"Hacked!\");]This should not be a link[/url]"), 
+        "<p>[url=alert(&quotHacked!&quot);]This should not be a link[/url]</p>");
+}
+#[test]
+fn url_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[url=javascript:get_ganked.js]This should not be a link[/url]"), 
+        "<p>[url=javascript:get_ganked.js]This should not be a link[/url]</p>");
+}
+#[test]
+fn url_forbidden_char_no_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[url]alert(\"Hacked!\");[/url]"), 
+        "<p>[url]alert(&quotHacked!&quot);[/url]</p>");
+}
+#[test]
+fn url_bad_no_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[url]javascript:get_ganked.js[/url]"), 
+        "<p>[url]javascript:get_ganked.js[/url]</p>");
 }
 
 /*-- OPACITY --*/
@@ -74,6 +170,16 @@ fn opacity_no_argument() {
 fn opacity_bad_argument() {
     assert_eq!(bbcode_to_html("[opacity=fish]This should not be transparant![/opacity]"), 
     	"<p>This should not be transparant!</p>");
+}
+#[test]
+fn opacity_no_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[opacity]This should not be transparant![/opacity]"), 
+        "<p>[opacity]This should not be transparant![/opacity]</p>");
+}
+#[test]
+fn opacity_bad_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[opacity=fish]This should not be transparant![/opacity]"), 
+        "<p>[opacity=fish]This should not be transparant![/opacity]</p>");
 }
 #[test]
 fn opacity_argument() {
@@ -96,6 +202,16 @@ fn size_no_argument() {
 fn size_bad_argument() {
     assert_eq!(bbcode_to_html("[size=fish]This should be normal![/size]"), 
     	"<p>This should be normal!</p>");
+}
+#[test]
+fn size_no_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[size]This should be normal![/size]"), 
+        "<p>[size]This should be normal![/size]</p>");
+}
+#[test]
+fn size_bad_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[size=fish]This should be normal![/size]"), 
+        "<p>[size=fish]This should be normal![/size]</p>");
 }
 #[test]
 fn size_argument() {
@@ -158,6 +274,21 @@ fn image_bad_filetype() {
 fn image_bad_arg() {
     assert_eq!(bbcode_to_html("[img]a onerror=alert('XSS')[/img]"), 
         "");
+}
+#[test]
+fn image_no_argument_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[img][/img]"), 
+        "<p>[img][/img]</p>");
+}
+#[test]
+fn image_bad_filetype_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[img]https://d/bad_image.svg[/img]"), 
+        "<p>[img]https://d/bad_image.svg[/img]</p>");
+}
+#[test]
+fn image_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[img]a onerror=alert('XSS')[/img]"), 
+        "<p>[img]a onerror=alert(&#x27XSS&#x27)[/img]</p>");
 }
 
 /*-- QUOTE --*/
@@ -405,12 +536,68 @@ fn nested_simple_list() {
         [/list]"), 
         "<ul><li><p>To be</p></li><li><p>or not to be</p></li><li><p>That </p><ul><li><p>is the</p></li><li><p>question</p></li></ul></li></ul>");
 }
+#[test]
+fn styled_list_bad_arg() {
+    assert_eq!(bbcode_to_html("
+        [list=fish]
+            [*]To be
+            [*]or not to be
+        [/list]"), 
+        "<p><br><br>To be<br>or not to be</p>");
+}
+#[test]
+fn list_no_list() {
+    assert_eq!(bbcode_to_html("
+        [*]To be
+        [*]or not to be"), 
+        "<p><br>To be<br>or not to be</p>");
+}
+#[test]
+fn styled_list_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("
+        [list=fish]
+            [*]To be
+            [*]or not to be
+        [/list]"), 
+        "<p><br>[list=fish]<br>[*]To be<br>[*]or not to be[/list]</p>");
+}
+#[test]
+fn list_no_list_ugly() {
+    assert_eq!(bbcode_to_html_ugly("
+        [*]To be
+        [*]or not to be"), 
+        "<p><br>[*]To be<br>[*]or not to be</p>");
+}
 
 /*-- TABLE --*/
 #[test]
 fn table() {
     assert_eq!(bbcode_to_html("
         [table]
+            [caption]Macbeth[/caption]
+            [tr]
+                [th]To be[/th]
+                [th]or not to be[/th]
+            [/tr]
+            [tr]
+                [td]that is[/td]
+                [td]the question[/td]
+            [/tr]
+        [/table]"), 
+        "<table><caption><p>Macbeth</p></caption><tr><th><p>To be</p></th><th><p>or not to be</p></th></tr><tr><td><p>that is</p></td><td><p>the question</p></td></tr></table>");
+}
+#[test]
+fn table_no_table_rows() {
+    assert_eq!(bbcode_to_html("
+        [th]To be[/th]
+        [th]or not to be[/th]
+        [td]that is[/td]
+        [td]the question[/td]"), 
+        "<p><br>To be<br>or not to be<br>that is<br>the question</p>");
+}
+#[test]
+fn table_no_table() {
+    assert_eq!(bbcode_to_html("
         [caption]Macbeth[/caption]
         [tr]
             [th]To be[/th]
@@ -419,9 +606,22 @@ fn table() {
         [tr]
             [td]that is[/td]
             [td]the question[/td]
+        [/tr]"), 
+        "<p><br>Macbeth<br><br>To be<br>or not to be<br><br>that is<br>the question</p>");
+}
+#[test]
+fn table_no_table_ugly() {
+    assert_eq!(bbcode_to_html_ugly("
+        [caption]Macbeth[/caption]
+        [tr]
+            [th]To be[/th]
+            [th]or not to be[/th]
         [/tr]
-    [/table]"), 
-        "<table><caption><p>Macbeth</p></caption><tr><th><p>To be</p></th><th><p>or not to be</p></th></tr><tr><td><p>that is</p></td><td><p>the question</p></td></tr></table>");
+        [tr]
+            [td]that is[/td]
+            [td]the question[/td]
+        [/tr]"), 
+        "<p><br>[caption]Macbeth[/caption]<br>[tr]<br>[th]To be[/th]<br>[th]or not to be[/th][/tr]<br>[tr]<br>[td]that is[/td]<br>[td]the question[/td][/tr]</p>");
 }
 
 /*-- PRE-LINE --*/
@@ -441,6 +641,11 @@ fn indent_arg() {
 fn indent_bad_arg() {
     assert_eq!(bbcode_to_html("[indent=7]To be, or not to be.[/indent]"), 
         "<p>To be, or not to be.</p>");
+}
+#[test]
+fn indent_bad_arg_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[indent=7]To be, or not to be.[/indent]"), 
+        "<p>[indent=7]To be, or not to be.[/indent]</p>");
 }
 
 /*-- MATH --*/
@@ -474,4 +679,9 @@ fn email() {
 fn email_no_text() {
     assert_eq!(bbcode_to_html("[email][/email]This should not be a link."), 
         "<p>This should not be a link.</p>");
+}
+#[test]
+fn email_no_text_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[email][/email]This should not be a link."), 
+        "<p>[email][/email]This should not be a link.</p>");
 }

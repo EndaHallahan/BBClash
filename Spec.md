@@ -346,7 +346,7 @@ Figure defines self-contained content that can be floated to the right or left. 
 
 ## List and List Item
 
-List and its subordinate tag List Item create lists. Lists can be nested. Lists are by default bulleted and unordered. To change the style of bullet for an unordered list, 'circle', 'square', or 'none' may be supplied. to create an ordered list, an argument must be supplied: '1' for numeric, 'a' and 'A' for lower and uppercase alphabetic, and 'i' and 'I' for lower and upper case roman numeric.
+List and its subordinate tag List Item create lists. Lists can be nested. Lists are by default bulleted and unordered. To change the style of bullet for an unordered list, 'circle', 'square', or 'none' may be supplied. to create an ordered list, an argument must be supplied: '1' for numeric, 'a' and 'A' for lower and uppercase alphabetic, and 'i' and 'I' for lower and upper case roman numeric. List Item-s used outside of a List are considered invalid and will not be parsed. 
 
 #### Tag:
 	[list]
@@ -361,6 +361,7 @@ List and its subordinate tag List Item create lists. Lists can be nested. Lists 
 		[*]{list item 1}
 		[*]{list item 2}
 	[/list]
+	[*]{list item}
 
 #### Yields:
 	<ul>
@@ -375,12 +376,13 @@ List and its subordinate tag List Item create lists. Lists can be nested. Lists 
 		<li>{list item 1}</li>
 		<li>{list item 2}</li>
 	</ol>
+	[*]{list item}
 
 
 
 ## Table, Table Row, Table Data, Table Header, and Caption
 
-Table and its subordinate tags create tables.
+Table and its subordinate tags create tables. Subordinate Table tags used outside of a Table are considered invalid and will not be parsed. 
 
 #### Tag:
 	[table]
@@ -394,6 +396,10 @@ Table and its subordinate tags create tables.
 			[td]{table content 2}[/td]
 		[/tr]
 	[/table]
+	[tr]
+		[td]{table content 1}[/td]
+		[td]{table content 2}[/td]
+	[/tr]
 
 #### Yields:
 	<table>
@@ -407,6 +413,10 @@ Table and its subordinate tags create tables.
 			<td>{table content 2}</td>
 		</tr>
 	</table>
+	[tr]
+		[td]{table content 1}[/td]
+		[td]{table content 2}[/td]
+	[/tr]
 
 
 
