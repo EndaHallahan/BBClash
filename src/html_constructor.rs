@@ -31,8 +31,6 @@ impl HTMLConstructor {
 
 	/// Opens an HTML tag.
 	fn start_element(&mut self, element: Ref<ASTElement>) {
-		println!("Open: {:?}", element.ele_type());
-		println!("Broken: {:?}", element.broken);
 		match element.ele_type() {
 			GroupType::Text => {
 				if let Some(text) = element.text_contents() {
@@ -173,7 +171,6 @@ impl HTMLConstructor {
 
 	/// Closes an HTML tag.
 	fn end_element(&mut self, element: Ref<ASTElement>) {
-		println!("Close: {:?}", element.ele_type());
 		match element.ele_type() {
 			GroupType::Paragraph => {self.output_string.push_str("</p>")},
 			GroupType::Bold => {self.output_string.push_str("</b>")},

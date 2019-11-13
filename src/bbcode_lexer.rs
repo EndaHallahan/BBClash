@@ -12,11 +12,11 @@ pub struct BBCodeLexer {
 	ignore_tags: Option<&'static str>,
 	ignore_formatting: bool,
 	linebreaks_allowed: bool,
-	preserve_broken: bool
+	preserve_empty: bool
 }
 impl BBCodeLexer {
 	/// Creates a new BBCodeLexer.
-	pub fn new(preserve_broken: bool) -> BBCodeLexer {
+	pub fn new(preserve_empty: bool) -> BBCodeLexer {
 		BBCodeLexer {
 			anchor: Node::new(ASTElement::new(GroupType::Anchor)),
 			current_node: Node::new(ASTElement::new(GroupType::Document)),
@@ -24,7 +24,7 @@ impl BBCodeLexer {
 			ignore_tags: None,
 			ignore_formatting: false,
 			linebreaks_allowed: true,
-			preserve_broken
+			preserve_empty
 		}
 	}
 	/// Lexes a vector of Instructions.
@@ -121,19 +121,23 @@ impl BBCodeLexer {
 		match self.current_node.parent() {
 			None => {},
 			Some(parent) => {
-				if !self.current_node.has_children()
-				&& (
-					!self.ignore_formatting &&
-					if let Some(text) = self.current_node.borrow().text_contents() {
-						text.trim().len() == 0
-					} else {
-						true
+				if !self.preserve_empty {
+					if !self.current_node.has_children()
+						&& (
+							!self.ignore_formatting &&
+							if let Some(text) = self.current_node.borrow().text_contents() {
+								text.trim().len() == 0
+							} else {
+								true
+							}
+						)
+						&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable()) {
+						self.current_node.detach();
+					} else if self.current_node.borrow().is_broken() && !self.current_node.has_children() {
+						self.current_node.detach();
 					}
-				)
-				&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable()) {
-					self.current_node.detach();
 				} else {
-					if !self.preserve_broken && self.current_node.borrow().is_broken() && !self.current_node.has_children() {
+					if self.current_node.borrow().ele_type() == &GroupType::Paragraph && !self.current_node.has_children() {
 						self.current_node.detach();
 					}
 				}
@@ -185,22 +189,26 @@ impl BBCodeLexer {
 							go = false;
 						},
 						Some(parent) => {
-							if !self.current_node.has_children()
-								&& (
-									!self.ignore_formatting &&
-									if let Some(text) = self.current_node.borrow().text_contents() {
-										text.trim().len() == 0
-									} else {
-										true
-									}
-								)
-								&& !self.current_node.borrow().is_void() && self.current_node.borrow().is_detachable() {
-								self.current_node.detach();
-							} else {
-								if !self.preserve_broken && self.current_node.borrow().is_broken() && !self.current_node.has_children() {
+							if !self.preserve_empty {
+								if !self.current_node.has_children()
+									&& (
+										!self.ignore_formatting &&
+										if let Some(text) = self.current_node.borrow().text_contents() {
+											text.trim().len() == 0
+										} else {
+											true
+										}
+									)
+									&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable()) {
+									self.current_node.detach();
+								} else if self.current_node.borrow().is_broken() && !self.current_node.has_children() {
 									self.current_node.detach();
 								}
-							} 
+							} else {
+								if self.current_node.borrow().ele_type() == &GroupType::Paragraph && !self.current_node.has_children() {
+									self.current_node.detach();
+								}
+							}
 							self.current_node = parent;
 						}
 					};
@@ -476,9 +484,10 @@ impl BBCodeLexer {
 			for c in arg.chars() {
 				if FORBIDDEN_URL_CHARS.contains(&c) {
 					if self.current_node.borrow().ele_type() == &GroupType::Url {
-						self.end_group(GroupType::Url);
+						self.current_node.borrow_mut().set_ele_type(GroupType::Broken(Box::new(GroupType::Url), "url"));
+					} else {
+						self.new_group(GroupType::Broken(Box::new(GroupType::Url), "url"));
 					}
-					self.new_group(GroupType::Broken(Box::new(GroupType::Url), "url"));
 					self.current_node.borrow_mut().add_text(arg);
 					return;
 				}

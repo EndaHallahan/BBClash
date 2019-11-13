@@ -311,6 +311,16 @@ fn quote_multiline() {
         [/quote]"), 
         "<blockquote><p>To be, or not to be.</p><p>That is the question.</p></blockquote>");
 }
+#[test]
+fn empty_quote() {
+    assert_eq!(bbcode_to_html("[quote][/quote]"), 
+        "");
+}
+#[test]
+fn empty_quote_ugly() {
+    assert_eq!(bbcode_to_html_ugly("[quote][/quote]"), 
+        "<blockquote></blockquote>");
+}
 
 /*-- HEADER --*/
 #[test]
