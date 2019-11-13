@@ -114,7 +114,6 @@ impl BBCodeLexer {
 	fn new_group(&mut self, ele_type: GroupType) {
 		self.current_node.append(Node::new(ASTElement::new(ele_type.clone())));
 		self.current_node = self.current_node.last_child().unwrap();
-
 	}
 	// Closes groups when the current group is the target group.
 	fn close_same_group(&mut self) {
@@ -234,9 +233,26 @@ impl BBCodeLexer {
 				kid.detach();
 			}
 		}
-		if self.current_node.borrow_mut().ele_type() == &ele_type {
+		if self.current_node.borrow().ele_type() == &ele_type {
 			self.close_same_group();
 			self.new_group(new_type);
+		} else if self.current_node.borrow().is_broken() {
+			let mut same = false;
+			if let GroupType::Broken(some_box, _) = self.current_node.borrow().ele_type().clone() {
+				let unpacked_type = *some_box;
+				if unpacked_type == ele_type {
+					same = true;
+				}
+			} 
+			if same {
+				self.close_same_group();
+				self.new_group(new_type);
+			} else {
+				let mut group_stack = Vec::new();
+				self.close_diff_group(&mut group_stack, ele_type);
+				self.new_group(new_type);
+				self.reopen_groups(&mut group_stack);
+			}
 		} else {
 			let mut group_stack = Vec::new();
 			self.close_diff_group(&mut group_stack, ele_type);
@@ -255,6 +271,22 @@ impl BBCodeLexer {
 		if self.current_node.borrow_mut().ele_type() == &ele_type {
 			self.close_same_group();
 			self.new_group(new_type);
+		} else if self.current_node.borrow().is_broken() {
+			let mut same = false;
+			if let GroupType::Broken(some_box, _) = self.current_node.borrow().ele_type().clone() {
+				let unpacked_type = *some_box;
+				if unpacked_type == ele_type {
+					same = true;
+				}
+			} 
+			if same {
+				self.close_same_group();
+				self.new_group(new_type);
+			} else {
+				let mut group_stack = Vec::new();
+				self.close_diff_group(&mut group_stack, ele_type);
+				self.new_group(new_type);
+			}
 		} else {
 			let mut group_stack = Vec::new();
 			self.close_diff_group(&mut group_stack, ele_type);
@@ -270,6 +302,21 @@ impl BBCodeLexer {
 		}
 		if self.current_node.borrow_mut().ele_type() == &ele_type {
 			self.close_same_group();
+		} else if self.current_node.borrow().is_broken() {
+			let mut same = false;
+			if let GroupType::Broken(some_box, _) = self.current_node.borrow().ele_type().clone() {
+				let unpacked_type = *some_box;
+				if unpacked_type == ele_type {
+					same = true;
+				}
+			} 
+			if same {
+				self.close_same_group();
+			} else {
+				let mut group_stack = Vec::new();
+				self.close_diff_group(&mut group_stack, ele_type);
+				self.reopen_groups(&mut group_stack);
+			}
 		} else {
 			let mut group_stack = Vec::new();
 			self.close_diff_group(&mut group_stack, ele_type);
