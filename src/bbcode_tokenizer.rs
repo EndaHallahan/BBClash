@@ -3,15 +3,19 @@ use super::Instruction;
 /// Tokenizer modes.
 #[derive(Debug, PartialEq)]
 enum ReadMode {
-	ParseText,
-	ParseEscape,
-	ParseTag,
-	ParseTagPrimaryArg,
-	ParseParabreak,
-	ParseScenebreak,
+	Text,
+	Escape,
+	Tag,
+	TagPrimaryArg,
+	Parabreak,
+	Scenebreak,
+}
+impl Default for ReadMode {
+    fn default() -> Self {ReadMode::Text}
 }
 
 /// Struct for BBCode tokenization.
+#[derive(Default)]
 pub struct BBCodeTokenizer {
 	mode: ReadMode,
 	current_instruction: Instruction,
@@ -19,41 +23,38 @@ pub struct BBCodeTokenizer {
 }
 impl BBCodeTokenizer {
 	/// Creates a new BBCodeTokenizer
-	pub fn new() -> BBCodeTokenizer {
-		let mode = ReadMode::ParseText;
-		let current_instruction = Instruction::Null;
-		let instructions = Vec::new();
-		BBCodeTokenizer{mode, current_instruction, instructions}
+	pub fn new() -> Self {
+		Default::default()
 	}
 	/// Reads and tokenizes BBCode into individual Instructions.
 	pub fn tokenize(&mut self, bbcode: &str) -> &Vec<Instruction> {
 		let bbcode_chars = bbcode.chars();
 		for character in bbcode_chars {
 			match &self.mode {
-				ReadMode::ParseText => {self.parse_text(character);},
-				ReadMode::ParseEscape => {self.parse_escape(character);},
-				ReadMode::ParseTag => {self.parse_tag(character);},
-				ReadMode::ParseTagPrimaryArg => {self.parse_tag_primary_arg(character);},
-				ReadMode::ParseParabreak => {self.parse_parabreak(character);},
-				ReadMode::ParseScenebreak => {self.parse_scenebreak(character);},
+				ReadMode::Text => {self.parse_text(character);},
+				ReadMode::Escape => {self.parse_escape(character);},
+				ReadMode::Tag => {self.parse_tag(character);},
+				ReadMode::TagPrimaryArg => {self.parse_tag_primary_arg(character);},
+				ReadMode::Parabreak => {self.parse_parabreak(character);},
+				ReadMode::Scenebreak => {self.parse_scenebreak(character);},
 			}
 		}
 		self.set_cur_instruction();
 		&self.instructions
 	}
-	/// Parses characters.
+	/// s characters.
 	fn parse_text(&mut self, character: char) {
 		match character {
 			'\\' => {
-				self.mode = ReadMode::ParseEscape
+				self.mode = ReadMode::Escape
 			},
 			'[' => {
 				self.set_cur_instruction();
-				self.mode = ReadMode::ParseTag;
+				self.mode = ReadMode::Tag;
 			},
 			'\n' | '\r' => {
 				self.set_cur_instruction();
-				self.mode = ReadMode::ParseParabreak;
+				self.mode = ReadMode::Parabreak;
 			},
 			'>' | '<' | '&' | '"' | '\'' => {
 				let san_char = self.sanitize(character);
@@ -78,44 +79,44 @@ impl BBCodeTokenizer {
 			}
 		}
 	}
-	/// Parses paragraph breaks.
+	/// s paragraph breaks.
 	fn parse_parabreak(&mut self, character: char) {
 		match character {
 			'\t' => {
 				self.set_new_instruction(Instruction::Parabreak("\n\t".to_string()));
-				self.mode = ReadMode::ParseText;
+				self.mode = ReadMode::Text;
 			},
 			'\n' | '\r' => {
-				self.mode = ReadMode::ParseScenebreak;
+				self.mode = ReadMode::Scenebreak;
 			},
 			' ' => {},
 			_ => {
 				self.set_new_instruction(Instruction::Linebreak);
-				self.mode = ReadMode::ParseText;
+				self.mode = ReadMode::Text;
 				self.parse_text(character);
 			}
 		}
 		
 	}
-	/// Parses scen breaks (three newlines).
+	/// s scen breaks (three newlines).
 	fn parse_scenebreak(&mut self, character: char) {
 		match character {
 			'\n' | '\r' => {
 				self.set_new_instruction(Instruction::Scenebreak);
-				self.mode = ReadMode::ParseText;
+				self.mode = ReadMode::Text;
 			},
 			' ' => {},
 			_ => {
 				self.set_new_instruction(Instruction::Parabreak("\n\n".to_string()));
-				self.mode = ReadMode::ParseText;
+				self.mode = ReadMode::Text;
 				self.parse_text(character);
 			}
 		}
 		
 	}
-	/// Parses escaped charcters.
+	/// s escaped charcters.
 	fn parse_escape(&mut self, character: char) {
-		self.mode = ReadMode::ParseText;
+		self.mode = ReadMode::Text;
 		match character {
 			'>' | '<' | '&' | '"' | '\'' | '\\' => {
 				let san_char = self.sanitize(character);
@@ -140,15 +141,15 @@ impl BBCodeTokenizer {
 			}
 		}	
 	}
-	/// Parses BBCode tags.
+	/// s BBCode tags.
 	fn parse_tag(&mut self, character: char) {
 		match character {
 			']' => {
 				self.set_cur_instruction();
-				self.mode = ReadMode::ParseText;
+				self.mode = ReadMode::Text;
 			},
 			'=' => {
-				self.mode = ReadMode::ParseTagPrimaryArg;
+				self.mode = ReadMode::TagPrimaryArg;
 			},
 			'>' | '<' | '&' | '"' | '\'' | '\\' => {
 				let san_char = self.sanitize(character);
@@ -173,12 +174,12 @@ impl BBCodeTokenizer {
 			}
 		}	
 	}
-	/// Parses BBCode tag arguments.
+	/// s BBCode tag arguments.
 	fn parse_tag_primary_arg(&mut self, character: char) {
 		match character {
 			']' => {
 				self.set_cur_instruction();
-				self.mode = ReadMode::ParseText;
+				self.mode = ReadMode::Text;
 			},
 			'>' | '<' | '&' | '"' | '\'' | '\\' => {
 				let san_char = self.sanitize(character);
@@ -231,7 +232,7 @@ impl BBCodeTokenizer {
 	}
 	/// Sanitizes characters for HTML.
 	fn sanitize(&mut self, character: char) -> String {
-		return match character {
+		match character {
 			'<' => "&lt",
 			'>' => "&gt",
 			'&' => "&amp",
@@ -239,6 +240,6 @@ impl BBCodeTokenizer {
 			'\'' => "&#x27",
 			'\\' => "&#x2F",
 			_ => unreachable!()
-		}.to_string();
+		}.to_string()
 	}
 }

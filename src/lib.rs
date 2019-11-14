@@ -150,7 +150,7 @@ impl ASTElement {
 		self.is_void
 	}
 	/// Adds text to an ASTElement.
-	pub fn add_text(&mut self, new_text: &String) {
+	pub fn add_text(&mut self, new_text: &str) {
 		if let Some(text) = &self.text_contents {
 			self.text_contents = Some(format!("{}{}", text, new_text));
 		} else {
@@ -160,22 +160,18 @@ impl ASTElement {
 	}
 	/// Gets whether or not an ASTElement has text.
 	pub fn has_text(&self) -> bool {
-		if let Some(_) = &self.text_contents {
-			true
-		} else {
-			false
-		}
+		self.text_contents.is_some()
 	}
 	/// Gets an immutable reference to an ASTElement's text_contents.
 	pub fn text_contents(&self) -> &Option<String> {
 		&self.text_contents
 	}
 	/// Sets an ASTElement's Argument field.
-	pub fn set_arg(&mut self, arg: &String) {
+	pub fn set_arg(&mut self, arg: &str) {
 		self.argument = Some(arg.to_string());
 	}
 	/// Adds to arg of an ASTElement.
-	pub fn add_arg(&mut self, new_arg: &String) {
+	pub fn add_arg(&mut self, new_arg: &str) {
 		if let Some(arg) = &self.argument {
 			self.argument = Some(format!("{}{}", arg, new_arg));
 		} else {
@@ -184,11 +180,7 @@ impl ASTElement {
 	}
 	/// Gets whether or not an ASTElement has an argument.
 	pub fn has_arg(&self) -> bool {
-		if let Some(_) = &self.argument {
-			true
-		} else {
-			false
-		}
+		self.argument.is_some()
 	}
 	/// Gets an immutable reference to an ASTElement's argument field.
 	pub fn argument(&self) -> &Option<String> {
@@ -217,6 +209,9 @@ pub enum Instruction {
 	Parabreak(String),
 	Linebreak,
 	Scenebreak
+}
+impl Default for Instruction {
+    fn default() -> Self {Instruction::Null}
 }
 
 /// Types of ASTElement.

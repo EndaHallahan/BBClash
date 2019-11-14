@@ -105,21 +105,21 @@ impl HTMLConstructor {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<blockquote data-author=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<blockquote>"));
+					self.output_string.push_str(&"<blockquote>".to_string());
 				}
 			},
 			GroupType::Footnote => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<span class=\"footnote\" data-symbol=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<span class=\"footnote\">"));
+					self.output_string.push_str(&"<span class=\"footnote\">".to_string());
 				}
 			},
 			GroupType::CodeBlock => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<pre data-language=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<pre>"));
+					self.output_string.push_str(&"<pre>".to_string());
 				}
 			},
 			GroupType::List => {
@@ -157,15 +157,13 @@ impl HTMLConstructor {
 					} else {
 						self.output_string.push_str(&format!("[{}]{}", tag, text));
 					}
+				} else if let Some(arg) = element.argument() {
+					self.output_string.push_str(&format!("[{}={}]", tag, arg));
 				} else {
-					if let Some(arg) = element.argument() {
-						self.output_string.push_str(&format!("[{}={}]", tag, arg));
-					} else {
-						self.output_string.push_str(&format!("[{}]", tag));
-					}
+					self.output_string.push_str(&format!("[{}]", tag));
 				}
 			},
-			_ => return
+			_ => {}
 		};
 	}
 
@@ -232,7 +230,7 @@ impl HTMLConstructor {
 					self.output_string.push_str(&format!("[/{}]", tag));
 				}	
 			},
-			_ => return
+			_ => {}
 		};
 	}
 }

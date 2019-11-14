@@ -8,7 +8,7 @@ use super::ASTElement;
 pub struct BBCodeLexer {
 	current_node: Node<ASTElement>,
 	anchor: Node<ASTElement>,
-	next_text_as_arg: Option<fn(&mut BBCodeLexer, &String)>,
+	next_text_as_arg: Option<fn(&mut BBCodeLexer, &str)>,
 	ignore_tags: Option<&'static str>,
 	ignore_formatting: bool,
 	linebreaks_allowed: bool,
@@ -28,7 +28,7 @@ impl BBCodeLexer {
 		}
 	}
 	/// Lexes a vector of Instructions.
-	pub fn lex(&mut self, instructions: &Vec<Instruction>) -> Node<ASTElement> {
+	pub fn lex(&mut self, instructions: &[Instruction]) -> Node<ASTElement> {
 		self.anchor.append(Node::new(ASTElement::new(GroupType::Document)));
 		self.current_node = self.anchor.first_child().unwrap();
 		self.new_group(GroupType::Paragraph);
@@ -85,12 +85,10 @@ impl BBCodeLexer {
 						self.new_group(GroupType::Text);
 						self.current_node.borrow_mut().add_text(&"\n".to_string());
 						self.end_group(GroupType::Text);
-					} else {
-						if self.linebreaks_allowed {
-							self.new_group(GroupType::Br);
-							self.current_node.borrow_mut().set_void(true);
-							self.end_group(GroupType::Br);
-						}
+					} else if self.linebreaks_allowed {
+						self.new_group(GroupType::Br);
+						self.current_node.borrow_mut().set_void(true);
+						self.end_group(GroupType::Br);
 					}
 				}
 				Instruction::Scenebreak => {
@@ -121,24 +119,21 @@ impl BBCodeLexer {
 			None => {},
 			Some(parent) => {
 				if !self.preserve_empty {
-					if !self.current_node.has_children()
+					if (!self.current_node.has_children()
 						&& (
 							!self.ignore_formatting &&
 							if let Some(text) = self.current_node.borrow().text_contents() {
-								text.trim().len() == 0
+								text.trim().is_empty()
 							} else {
 								true
 							}
 						)
-						&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable()) {
-						self.current_node.detach();
-					} else if self.current_node.borrow().is_broken() && !self.current_node.has_children() {
-						self.current_node.detach();
-					}
-				} else {
-					if self.current_node.borrow().ele_type() == &GroupType::Paragraph && !self.current_node.has_children() {
+						&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable())) 
+						|| (self.current_node.borrow().is_broken() && !self.current_node.has_children()) {
 						self.current_node.detach();
 					}
+				} else if self.current_node.borrow().ele_type() == &GroupType::Paragraph && !self.current_node.has_children() {
+					self.current_node.detach();
 				}
 				self.current_node = parent;
 			}
@@ -165,48 +160,44 @@ impl BBCodeLexer {
 				_ => {
 					if my_type == ele_type {
 						go = false;
-					} else {
-						if let GroupType::Broken(some_box, _) = my_type.clone() {
-							let unpacked_type = *some_box;
-							if unpacked_type == ele_type {
-								go = false;
-							} else if unpacked_type != GroupType::ListItem {
-								group_stack.push(GroupShorthand {
-									ele_type: my_type, 
-									arg: self.current_node.borrow().argument().clone()
-								});
-							}
-						} else {
+					} else if let GroupType::Broken(some_box, _) = my_type.clone() {
+						let unpacked_type = *some_box;
+						if unpacked_type == ele_type {
+							go = false;
+						} else if unpacked_type != GroupType::ListItem {
 							group_stack.push(GroupShorthand {
 								ele_type: my_type, 
 								arg: self.current_node.borrow().argument().clone()
 							});
 						}
+					} else {
+						group_stack.push(GroupShorthand {
+							ele_type: my_type, 
+							arg: self.current_node.borrow().argument().clone()
+						});
 					}
+					
 					match self.current_node.parent() {
 						None => {
 							go = false;
 						},
 						Some(parent) => {
 							if !self.preserve_empty {
-								if !self.current_node.has_children()
+								if (!self.current_node.has_children()
 									&& (
 										!self.ignore_formatting &&
 										if let Some(text) = self.current_node.borrow().text_contents() {
-											text.trim().len() == 0
+											text.trim().is_empty()
 										} else {
 											true
 										}
 									)
-									&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable()) {
-									self.current_node.detach();
-								} else if self.current_node.borrow().is_broken() && !self.current_node.has_children() {
-									self.current_node.detach();
-								}
-							} else {
-								if self.current_node.borrow().ele_type() == &GroupType::Paragraph && !self.current_node.has_children() {
+									&& !self.current_node.borrow().is_void() && (self.current_node.borrow().is_detachable())) 
+									|| (self.current_node.borrow().is_broken() && !self.current_node.has_children()) {
 									self.current_node.detach();
 								}
+							} else if self.current_node.borrow().ele_type() == &GroupType::Paragraph && !self.current_node.has_children() {
+								self.current_node.detach();
 							}
 							self.current_node = parent;
 						}
@@ -217,7 +208,7 @@ impl BBCodeLexer {
 	}
 	// Reopens closed groups after another element has closed.
 	fn reopen_groups(&mut self, group_stack: &mut Vec<GroupShorthand>) {
-		while group_stack.len() > 0 {
+		while !group_stack.is_empty() {
 			let group = group_stack.pop().unwrap();
 			self.new_group(group.ele_type.clone());
 			if let Some(arg) = group.arg {
@@ -484,12 +475,10 @@ impl BBCodeLexer {
 		self.new_group(GroupType::Paragraph);
 	}
 
-	fn cmd_colour_open(&mut self, arg: &String) {
-		if arg.starts_with("#") && arg.len() == 7 || arg.len() == 4 
-		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit()) {
-			self.new_group(GroupType::Colour);
-			self.current_node.borrow_mut().set_arg(arg);
-		} else if WEB_COLOURS.contains(arg.as_str()) {
+	fn cmd_colour_open(&mut self, arg: &str) {
+		if (arg.starts_with('#') && arg.len() == 7 || arg.len() == 4 
+		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit())) 
+		|| WEB_COLOURS.contains(arg) {
 			self.new_group(GroupType::Colour);
 			self.current_node.borrow_mut().set_arg(arg);
 		} else {
@@ -500,12 +489,10 @@ impl BBCodeLexer {
 	fn cmd_colour_bare_open(&mut self) {
 		self.new_group(GroupType::Broken(Box::new(GroupType::Colour), "colour"));
 	}
-	fn cmd_color_open(&mut self, arg: &String) {
-		if arg.starts_with("#") && arg.len() == 7 || arg.len() == 4 
-		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit()) {
-			self.new_group(GroupType::Colour);
-			self.current_node.borrow_mut().set_arg(arg);
-		} else if WEB_COLOURS.contains(arg.as_str()) {
+	fn cmd_color_open(&mut self, arg: &str) {
+		if (arg.starts_with('#') && arg.len() == 7 || arg.len() == 4 
+		&& arg.trim_start_matches('#').chars().all(|c| c.is_ascii_hexdigit())) 
+		|| WEB_COLOURS.contains(arg) {
 			self.new_group(GroupType::Colour);
 			self.current_node.borrow_mut().set_arg(arg);
 		} else {
@@ -524,7 +511,7 @@ impl BBCodeLexer {
 		self.next_text_as_arg = Some(BBCodeLexer::cmd_url_arg);
 		self.new_group(GroupType::Url);
 	}
-	fn cmd_url_arg(&mut self, arg: &String) {
+	fn cmd_url_arg(&mut self, arg: &str) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			self.current_node.borrow_mut().set_arg(arg);
 		} else {
@@ -545,7 +532,7 @@ impl BBCodeLexer {
 		self.current_node.borrow_mut().add_text(arg);
 		self.end_group(GroupType::Text);
 	}
-	fn cmd_url_open(&mut self, arg: &String) {
+	fn cmd_url_open(&mut self, arg: &str) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			self.new_group(GroupType::Url);
 			self.current_node.borrow_mut().set_arg(arg);
@@ -573,7 +560,7 @@ impl BBCodeLexer {
 		self.next_text_as_arg = Some(BBCodeLexer::cmd_email_arg);
 		self.new_group(GroupType::Email);
 	}
-	fn cmd_email_arg(&mut self, arg: &String) {
+	fn cmd_email_arg(&mut self, arg: &str) {
 		self.current_node.borrow_mut().set_arg(&format!("mailto:{}", arg));
 		self.new_group(GroupType::Text);
 		self.current_node.borrow_mut().add_text(arg);
@@ -591,9 +578,9 @@ impl BBCodeLexer {
 		self.next_text_as_arg = Some(BBCodeLexer::cmd_img_arg);
 		self.new_group(GroupType::Image);
 	}
-	fn cmd_img_arg(&mut self, arg: &String) {
+	fn cmd_img_arg(&mut self, arg: &str) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
-			if let Some(index) = arg.rfind(".") {
+			if let Some(index) = arg.rfind('.') {
 				if let Some(suffix) = arg.get(index..) {
 					if ACCEPTED_IMAGE_TYPES.contains(suffix) {
 						self.new_group(GroupType::Image);
@@ -636,7 +623,7 @@ impl BBCodeLexer {
 					return;
 				}
 			}
-			if let Some(index) = arg.rfind(".") {
+			if let Some(index) = arg.rfind('.') {
 				if let Some(suffix) = arg.get(index..) {
 					if ACCEPTED_IMAGE_TYPES.contains(suffix) {
 						self.new_group(GroupType::Image);
@@ -677,10 +664,10 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Image);
 	}
 
-	fn cmd_opacity_open(&mut self, arg: &String) {
+	fn cmd_opacity_open(&mut self, arg: &str) {
 		let mut divisor = 1.0;
 		let arg_string;
-		if arg.ends_with("%") {
+		if arg.ends_with('%') {
 			arg_string = arg.trim_end_matches('%');
 			divisor = 100.0;
 		} else {
@@ -688,7 +675,7 @@ impl BBCodeLexer {
 		}
 		match arg_string.parse::<f32>() {
 			Ok(mut val) => {
-				val = val/divisor;
+				val /= divisor;
 				if val < 0.0 {
 					val = 0.0;
 				} else if val > 1.0 {
@@ -710,7 +697,7 @@ impl BBCodeLexer {
 		self.end_group(GroupType::Opacity);
 	}
 
-	fn cmd_size_open(&mut self, arg: &String) {
+	fn cmd_size_open(&mut self, arg: &str) {
 		let mut divisor = 1.0;
 		let arg_string;
 		if arg.ends_with("em") {
@@ -721,7 +708,7 @@ impl BBCodeLexer {
 		}
 		match arg_string.parse::<f32>() {
 			Ok(mut val) => {
-				val = val/divisor;
+				val /= divisor;
 				if val < 0.5 {
 					val = 0.5;
 				} else if val > 2.0 {
@@ -747,7 +734,7 @@ impl BBCodeLexer {
 		self.end_and_new_group(GroupType::Paragraph, GroupType::Quote);
 		self.new_group(GroupType::Paragraph);
 	}
-	fn cmd_quote_arg_open(&mut self, arg: &String) {
+	fn cmd_quote_arg_open(&mut self, arg: &str) {
 		self.end_and_new_group(GroupType::Paragraph, GroupType::Quote);
 		self.current_node.borrow_mut().set_arg(arg);
 		self.new_group(GroupType::Paragraph);
@@ -760,7 +747,7 @@ impl BBCodeLexer {
 	fn cmd_footnote_bare_open(&mut self) {
 		self.new_group(GroupType::Footnote);
 	}
-	fn cmd_footnote_open(&mut self, arg: &String) {
+	fn cmd_footnote_open(&mut self, arg: &str) {
 		self.new_group(GroupType::Footnote);
 		self.current_node.borrow_mut().set_arg(arg);
 	}
@@ -782,7 +769,7 @@ impl BBCodeLexer {
 		self.ignore_tags = Some("/codeblock");
 		self.ignore_formatting = true;
 	}
-	fn cmd_codeblock_open(&mut self, arg: &String) {
+	fn cmd_codeblock_open(&mut self, arg: &str) {
 		self.end_and_kill_new_group(GroupType::Paragraph, GroupType::CodeBlock);
 		self.ignore_tags = Some("/codeblock");
 		self.ignore_formatting = true;
@@ -794,7 +781,7 @@ impl BBCodeLexer {
 		self.ignore_formatting = false;
 	}
 
-	fn cmd_figure_open(&mut self, arg: &String) {	
+	fn cmd_figure_open(&mut self, arg: &str) {	
 		if arg == "right" || arg == "left" {
 			self.end_and_new_group(GroupType::Paragraph, GroupType::Figure);
 			self.current_node.borrow_mut().set_arg(arg);
@@ -814,7 +801,7 @@ impl BBCodeLexer {
 		self.end_and_new_group(GroupType::Paragraph, GroupType::Embed);
 		self.current_node.borrow_mut().set_void(true);
 	}
-	fn cmd_embed_arg(&mut self, arg: &String) {
+	fn cmd_embed_arg(&mut self, arg: &str) {
 		if arg.starts_with("https://") || arg.starts_with("http://") {
 			self.current_node.borrow_mut().set_arg(arg);
 		} else {
@@ -836,7 +823,7 @@ impl BBCodeLexer {
 		self.end_and_new_group(GroupType::Paragraph, GroupType::List);
 		self.linebreaks_allowed = false;
 	}
-	fn cmd_list_open(&mut self, arg: &String) {
+	fn cmd_list_open(&mut self, arg: &str) {
 		if LIST_TYPES.contains(arg as &str) {
 			self.end_and_new_group(GroupType::Paragraph, GroupType::List);
 			self.current_node.borrow_mut().set_arg(arg);
@@ -971,8 +958,8 @@ impl BBCodeLexer {
 		self.end_group(GroupType::PreLine);
 	}
 
-	fn cmd_indent_open(&mut self, arg: &String) {
-		match arg as &str {
+	fn cmd_indent_open(&mut self, arg: &str) {
+		match arg {
 			"1" | "2" | "3" | "4" => {
 				self.end_and_new_group(GroupType::Paragraph, GroupType::Indent);
 				self.current_node.borrow_mut().set_arg(arg);
@@ -1102,7 +1089,7 @@ static NO_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer)> = phf_map! {
 	"/email" => BBCodeLexer::cmd_email_close,
 };
 /// Static compile-time map of tags with single arguments to lexer commands.
-static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &String)> = phf_map! {
+static ONE_ARG_CMD: phf::Map<&'static str, fn(&mut BBCodeLexer, &str)> = phf_map! {
     "color" => BBCodeLexer::cmd_color_open,
 	"colour" => BBCodeLexer::cmd_colour_open,
 	"url" => BBCodeLexer::cmd_url_open,
