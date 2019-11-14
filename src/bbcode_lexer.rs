@@ -1460,6 +1460,7 @@ static LIST_TYPES: phf::Set<&'static str> = phf_set! {
 	"none",
 };
 
+/// A simplified representation of an element used when closing and reopening groups.
 pub struct GroupShorthand {
 	pub ele_type: GroupType,
 	pub arg: Option<String>

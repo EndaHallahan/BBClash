@@ -17,25 +17,31 @@ BBClash also comes ready out-of-the-box for use as WASM or with other languages 
 
 ## Pretty and Ugly Output
 
-BBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode from the final output:
+BBBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode and empty elements from the final output:
 
 ```rust
 use bbclash::bbcode_to_html;
 
 assert_eq!(bbcode_to_html("I'm [colour]missing an argument![/colour]"), 
 		"<p>I&#x27m missing an argument!</p>");
+
+assert_eq!(bbcode_to_html("[quote][/quote]"), 
+		"");
 ```
 
-Ugly uses the `bbcode_to_html_ugly` function, and leaves improperly formatted BBCode tags in the final output as written:
+Ugly uses the `bbcode_to_html_ugly` function, and leaves improperly formatted BBCode tags and empty elements in the final output as written:
 
 ```rust
 use bbclash::bbcode_to_html_ugly;
 
 assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
 		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+
+assert_eq!(bbcode_to_html_ugly("[quote][/quote]"), 
+		"<blockquote></blockquote>");
 ```
 
-Note that neither mode arbitrarily strips any text in square brackets. this only affects improperly-written BBCode tags; `[non tags]` will not be affected.
+Note that neither mode arbitrarily strips any text in square brackets. This only affects improperly-written BBCode tags; `[non tags]` will not be affected.
 
 ## Custom Usage:
 
@@ -57,7 +63,7 @@ pub use crate::bbcode_lexer::BBCodeLexer;
 pub use crate::html_constructor::HTMLConstructor;
 
 /// Generates a string of HTML from an &str of BBCode.
-/// This function produces *pretty* output, meaning that any eroneously written BBCode encountered will be removed from the final output.
+/// This function produces *pretty* output, meaning that any eroneously written BBCode encountered or empty tags will be removed from the final output.
 /// # Examples
 ///
 /// ```
@@ -65,6 +71,9 @@ pub use crate::html_constructor::HTMLConstructor;
 ///
 ///assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"), 
 ///		"<p>I&#x27m <i>italic</i> and <b>bold!</b></p>");
+///
+///assert_eq!(bbcode_to_html("[quote][/quote]"), 
+///		"");
 /// ```
 #[no_mangle]
 pub extern fn bbcode_to_html(input: &str) -> String {
@@ -75,7 +84,7 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 }
 
 /// Generates a string of HTML from an &str of BBCode. 
-/// This function produces *ugly* output, meaning that any eroneously written BBCode encountered will be included in the final output.
+/// This function produces *ugly* output, meaning that any eroneously written BBCode or empty tags encountered will be included in the final output.
 /// # Examples
 ///
 /// ```
@@ -83,6 +92,9 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 ///
 ///assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
 ///		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+///
+///assert_eq!(bbcode_to_html_ugly("[quote][/quote]"), 
+///		"<blockquote></blockquote>");
 /// ```
 #[no_mangle]
 pub extern fn bbcode_to_html_ugly(input: &str) -> String {
@@ -184,11 +196,11 @@ impl ASTElement {
 	pub fn set_detachable(&mut self, in_det: bool) {
 		self.detachable = in_det;
 	}
-	/// gets the value of an ASTElement's detachable field.
+	/// Gets the value of an ASTElement's detachable field.
 	pub fn is_detachable(&self) -> bool {
 		self.detachable
 	}
-
+	/// Gets the value of an ASTElement's broken field.
 	pub fn is_broken(&self) -> bool {
 		self.broken
 	}
