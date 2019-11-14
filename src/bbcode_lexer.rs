@@ -110,7 +110,7 @@ impl BBCodeLexer {
 	}
 	/// Creates a new ASTElement.
 	fn new_group(&mut self, ele_type: GroupType) {
-		self.current_node.append(Node::new(ASTElement::new(ele_type.clone())));
+		self.current_node.append(Node::new(ASTElement::new(ele_type)));
 		self.current_node = self.current_node.last_child().unwrap();
 	}
 	// Closes groups when the current group is the target group.

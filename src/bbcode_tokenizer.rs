@@ -190,7 +190,7 @@ impl BBCodeTokenizer {
 								primarg.push_str(&san_char);
 							},
 							None => {
-								self.current_instruction = Instruction::Tag(contents.to_string(), Some(san_char.to_string()));
+								self.current_instruction = Instruction::Tag((*contents).to_string(), Some(san_char));
 							}
 						}
 					},
@@ -207,7 +207,7 @@ impl BBCodeTokenizer {
 								primarg.push(character);
 							},
 							None => {
-								self.current_instruction = Instruction::Tag(contents.to_string(), Some(character.to_string()));
+								self.current_instruction = Instruction::Tag((*contents).to_string(), Some(character.to_string()));
 							}
 						}
 					},
@@ -227,7 +227,7 @@ impl BBCodeTokenizer {
 	}
 	/// Adds a given instruction to instruction vector and resets current instruction.
 	fn set_new_instruction(&mut self, instruction: Instruction) {
-		self.instructions.push(instruction.clone());
+		self.instructions.push(instruction);
 		self.current_instruction = Instruction::Null;
 	}
 	/// Sanitizes characters for HTML.

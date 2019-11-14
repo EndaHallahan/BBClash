@@ -15,8 +15,6 @@ assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"),
 		"<p>I&#x27m <i>italic</i> and <b>bold!</b></p>");
 ```
 
-BBClash also comes ready out-of-the-box for use as WASM or with other languages via C bindings.
-
 ## Pretty and Ugly Output
 
 BBBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode and empty elements from the final output:
@@ -78,7 +76,7 @@ pub use crate::html_constructor::HTMLConstructor;
 ///		"");
 /// ```
 #[no_mangle]
-pub extern fn bbcode_to_html(input: &str) -> String {
+pub fn bbcode_to_html(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
 	let mut lexer = BBCodeLexer::new(false);
 	let mut constructor = HTMLConstructor::new(input.len(), true);
@@ -99,7 +97,7 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 ///		"<blockquote></blockquote>");
 /// ```
 #[no_mangle]
-pub extern fn bbcode_to_html_ugly(input: &str) -> String {
+pub fn bbcode_to_html_ugly(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
 	let mut lexer = BBCodeLexer::new(true);
 	let mut constructor = HTMLConstructor::new(input.len(), false);

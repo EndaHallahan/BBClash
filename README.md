@@ -22,8 +22,6 @@ assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"),
 		"<p>I&#x27m <i>italic</i> and <b>bold!</b></p>");
 ```
 
-BBClash also comes ready out-of-the-box for use as WASM, or for use with other languages via C bindings.
-
 ## Pretty and Ugly Output
 
 BBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode and empty elements from the final output:
