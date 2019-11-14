@@ -1,7 +1,14 @@
-name: Test, Lint, and Bench
+name: Test and Lint
 
-on: [push, pull_request]
-
+on: 
+  push:
+    branches:    
+      - master 
+      - unstable
+  pull_request:
+    branches: 
+      - master 
+      - unstable
 jobs:
   check:
     name: Check
