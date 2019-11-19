@@ -60,6 +60,7 @@ impl HTMLConstructor {
 			GroupType::TableRow => {self.output_string.push_str("<tr>")},
 			GroupType::TableHeader => {self.output_string.push_str("<th>")},
 			GroupType::TableData => {self.output_string.push_str("<td>")},
+			GroupType::TableCaption => {self.output_string.push_str("<caption>")},
 			GroupType::Header => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<h{}>", arg));
@@ -104,21 +105,21 @@ impl HTMLConstructor {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<blockquote data-author=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<blockquote>"));
+					self.output_string.push_str(&"<blockquote>".to_string());
 				}
 			},
 			GroupType::Footnote => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<span class=\"footnote\" data-symbol=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<span class=\"footnote\">"));
+					self.output_string.push_str(&"<span class=\"footnote\">".to_string());
 				}
 			},
 			GroupType::CodeBlock => {
 				if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("<pre data-language=\"{}\">", arg));
 				} else {
-					self.output_string.push_str(&format!("<pre>"));
+					self.output_string.push_str(&"<pre>".to_string());
 				}
 			},
 			GroupType::List => {
@@ -150,13 +151,19 @@ impl HTMLConstructor {
 				}	
 			},
 			GroupType::Broken(_, tag) if !self.pretty_print => {
-				if let Some(arg) = element.argument() {
+				if let Some(text) = element.text_contents() {
+					if let Some(arg) = element.argument() {
+						self.output_string.push_str(&format!("[{}={}]{}", tag, arg, text));
+					} else {
+						self.output_string.push_str(&format!("[{}]{}", tag, text));
+					}
+				} else if let Some(arg) = element.argument() {
 					self.output_string.push_str(&format!("[{}={}]", tag, arg));
 				} else {
 					self.output_string.push_str(&format!("[{}]", tag));
 				}
 			},
-			_ => return
+			_ => {}
 		};
 	}
 
@@ -178,6 +185,7 @@ impl HTMLConstructor {
 			GroupType::TableRow => {self.output_string.push_str("</tr>")},
 			GroupType::TableHeader => {self.output_string.push_str("</th>")},
 			GroupType::TableData => {self.output_string.push_str("</td>")},
+			GroupType::TableCaption => {self.output_string.push_str("</caption>")},
 			GroupType::List => {
 				if let Some(arg) = element.argument() {
 					match arg as &str{
@@ -218,9 +226,11 @@ impl HTMLConstructor {
 			GroupType::Embed
 				=> {self.output_string.push_str("</div>")}
 			GroupType::Broken(_, tag) if !self.pretty_print => {
-				self.output_string.push_str(&format!("[/{}]", tag));
+				if !element.is_void() {
+					self.output_string.push_str(&format!("[/{}]", tag));
+				}	
 			},
-			_ => return
+			_ => {}
 		};
 	}
 }

@@ -64,6 +64,11 @@ fn empty_tag() {
 		"<p>I have an empty tag!</p>");
 }
 #[test]
+fn only_empty_tag() {
+	assert_eq!(bbcode_to_html("[i][/i]"), 
+		"");
+}
+#[test]
 fn void_tag() {
 	assert_eq!(bbcode_to_html("I have an hr[hr] tag!"), 
 		"<p>I have an hr</p><hr><p> tag!</p>");

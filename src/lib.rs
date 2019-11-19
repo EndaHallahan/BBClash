@@ -4,6 +4,8 @@ BBClash is the open-source version of the BBCode compiler being built for [Pencl
 
 Our BBCode specification can be found [here](https://github.com/EndaHallahan/BBClash/blob/master/Spec.md).
 
+*Note: currently requires Rust Nightly to build. Relevant issue: [54727](https://github.com/rust-lang/rust/issues/54727)*
+
 ## General Usage:
 
 ```rust
@@ -13,33 +15,37 @@ assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"),
 		"<p>I&#x27m <i>italic</i> and <b>bold!</b></p>");
 ```
 
-BBClash also comes ready out-of-the-box for use as WASM or with other languages via C bindings.
-
 ## Pretty and Ugly Output
 
-BBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode from the final output:
+BBBClash has two main modes of operation: *pretty* and *ugly*. Pretty output uses the `bbcode_to_html` function, and excludes improperly formatted bbcode and empty elements from the final output:
 
 ```rust
 use bbclash::bbcode_to_html;
 
 assert_eq!(bbcode_to_html("I'm [colour]missing an argument![/colour]"), 
 		"<p>I&#x27m missing an argument!</p>");
+
+assert_eq!(bbcode_to_html("[quote][/quote]"), 
+		"");
 ```
 
-Ugly uses the `bbcode_to_html_ugly` function, and leaves improperly formatted BBCode tags in the final output as written:
+Ugly uses the `bbcode_to_html_ugly` function, and leaves improperly formatted BBCode tags and empty elements in the final output as written:
 
 ```rust
 use bbclash::bbcode_to_html_ugly;
 
 assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
 		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+
+assert_eq!(bbcode_to_html_ugly("[quote][/quote]"), 
+		"<blockquote></blockquote>");
 ```
 
-Note that neither mode arbitrarily strips any text in square brackets. this only affects improperly-written BBCode tags; `[non tags]` will not be affected.
+Note that neither mode arbitrarily strips any text in square brackets. This only affects improperly-written BBCode tags; `[non tags]` will not be affected.
 
 ## Custom Usage:
 
-Because this package was built for an existing application, and because it is performance-focused, BBClash's BBCode implementation is entirely hard-coded. Because of this, it is reccommended that you download a local copy and modify it to suit your needs. *Note: currently requires Rust Nightly to build. Relevant issue: [54727](https://github.com/rust-lang/rust/issues/54727)*
+Because this package was built for an existing application, and because it is performance-focused, BBClash's BBCode implementation is entirely hard-coded. Because of this, it is reccommended that you download a local copy and modify it to suit your needs. 
 
 Building is as simple as running `$ cargo build`. Tests and benchmarks can be run with `$ cargo test` and `$ cargo bench`, respectively.
 */
@@ -57,7 +63,7 @@ pub use crate::bbcode_lexer::BBCodeLexer;
 pub use crate::html_constructor::HTMLConstructor;
 
 /// Generates a string of HTML from an &str of BBCode.
-/// This function produces *pretty* output, meaning that any eroneously written BBCode encountered will be removed from the final output.
+/// This function produces *pretty* output, meaning that any eroneously written BBCode encountered or empty tags will be removed from the final output.
 /// # Examples
 ///
 /// ```
@@ -65,17 +71,20 @@ pub use crate::html_constructor::HTMLConstructor;
 ///
 ///assert_eq!(bbcode_to_html("I'm [i]italic[/i] and [b]bold![/b]"), 
 ///		"<p>I&#x27m <i>italic</i> and <b>bold!</b></p>");
+///
+///assert_eq!(bbcode_to_html("[quote][/quote]"), 
+///		"");
 /// ```
 #[no_mangle]
-pub extern fn bbcode_to_html(input: &str) -> String {
+pub fn bbcode_to_html(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
-	let mut lexer = BBCodeLexer::new();
+	let mut lexer = BBCodeLexer::new(false);
 	let mut constructor = HTMLConstructor::new(input.len(), true);
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
 }
 
 /// Generates a string of HTML from an &str of BBCode. 
-/// This function produces *ugly* output, meaning that any eroneously written BBCode encountered will be included in the final output.
+/// This function produces *ugly* output, meaning that any eroneously written BBCode or empty tags encountered will be included in the final output.
 /// # Examples
 ///
 /// ```
@@ -83,11 +92,14 @@ pub extern fn bbcode_to_html(input: &str) -> String {
 ///
 ///assert_eq!(bbcode_to_html_ugly("I'm [colour]missing an argument![/colour]"), 
 ///		"<p>I&#x27m [colour]missing an argument![/colour]</p>");
+///
+///assert_eq!(bbcode_to_html_ugly("[quote][/quote]"), 
+///		"<blockquote></blockquote>");
 /// ```
 #[no_mangle]
-pub extern fn bbcode_to_html_ugly(input: &str) -> String {
+pub fn bbcode_to_html_ugly(input: &str) -> String {
     let mut tokenizer = BBCodeTokenizer::new();
-	let mut lexer = BBCodeLexer::new();
+	let mut lexer = BBCodeLexer::new(true);
 	let mut constructor = HTMLConstructor::new(input.len(), false);
 	constructor.construct(lexer.lex(tokenizer.tokenize(input)))
 }
@@ -99,6 +111,8 @@ pub struct ASTElement {
 	text_contents: Option<String>,
 	argument: Option<String>,
 	is_void: bool,
+	detachable: bool,
+	broken: bool,
 }
 impl ASTElement {
 	/// Creates a new ASTElement.
@@ -106,10 +120,19 @@ impl ASTElement {
 		let text_contents = None;
 		let argument = None;
 		let is_void = false;
-		ASTElement{ele_type, text_contents, argument, is_void}
+		let detachable = true;
+		let broken = match ele_type {
+			GroupType::Broken(_,_) => true,
+			_ => false
+		};
+		ASTElement{ele_type, text_contents, argument, is_void, detachable, broken}
 	}
 	/// Sets an ASTElement's type.
 	pub fn set_ele_type(&mut self, new_type: GroupType) {
+		self.broken = match new_type {
+			GroupType::Broken(_,_) => true,
+			_ => false
+		};
 		self.ele_type = new_type;
 	}
 	/// Gets an immutable reference to an ASTElement's type.
@@ -125,7 +148,7 @@ impl ASTElement {
 		self.is_void
 	}
 	/// Adds text to an ASTElement.
-	pub fn add_text(&mut self, new_text: &String) {
+	pub fn add_text(&mut self, new_text: &str) {
 		if let Some(text) = &self.text_contents {
 			self.text_contents = Some(format!("{}{}", text, new_text));
 		} else {
@@ -135,40 +158,43 @@ impl ASTElement {
 	}
 	/// Gets whether or not an ASTElement has text.
 	pub fn has_text(&self) -> bool {
-		if let Some(_) = &self.text_contents {
-			true
-		} else {
-			false
-		}
+		self.text_contents.is_some()
 	}
 	/// Gets an immutable reference to an ASTElement's text_contents.
 	pub fn text_contents(&self) -> &Option<String> {
 		&self.text_contents
 	}
 	/// Sets an ASTElement's Argument field.
-	pub fn set_arg(&mut self, arg: &String) {
+	pub fn set_arg(&mut self, arg: &str) {
 		self.argument = Some(arg.to_string());
 	}
 	/// Adds to arg of an ASTElement.
-	pub fn add_arg(&mut self, new_arg: &String) {
+	pub fn add_arg(&mut self, new_arg: &str) {
 		if let Some(arg) = &self.argument {
 			self.argument = Some(format!("{}{}", arg, new_arg));
 		} else {
 			self.argument = Some(new_arg.to_string());
 		}
-		
 	}
 	/// Gets whether or not an ASTElement has an argument.
-	pub fn has_arg(&mut self) -> bool {
-		if let Some(_) = &self.argument {
-			true
-		} else {
-			false
-		}
+	pub fn has_arg(&self) -> bool {
+		self.argument.is_some()
 	}
 	/// Gets an immutable reference to an ASTElement's argument field.
 	pub fn argument(&self) -> &Option<String> {
 		&self.argument
+	}
+	/// Sets an ASTElement's detachable field (indicates whether the element should be detatched if empty);
+	pub fn set_detachable(&mut self, in_det: bool) {
+		self.detachable = in_det;
+	}
+	/// Gets the value of an ASTElement's detachable field.
+	pub fn is_detachable(&self) -> bool {
+		self.detachable
+	}
+	/// Gets the value of an ASTElement's broken field.
+	pub fn is_broken(&self) -> bool {
+		self.broken
 	}
 }
 
@@ -181,6 +207,9 @@ pub enum Instruction {
 	Parabreak(String),
 	Linebreak,
 	Scenebreak
+}
+impl Default for Instruction {
+    fn default() -> Self {Instruction::Null}
 }
 
 /// Types of ASTElement.
@@ -227,6 +256,7 @@ pub enum GroupType{
 	TableRow,
 	TableData,
 	TableHeader,
+	TableCaption,
 	Paragraph,
 	Scenebreak,
 	Null,
