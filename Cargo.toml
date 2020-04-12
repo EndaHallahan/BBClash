@@ -4,13 +4,17 @@ description = "A robust, opinionated, performance-focused BBCode to HTML parser 
 keywords = ["bbcode"]
 categories = ["parser-implementations"]
 license = "MIT"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Enda Hallahan <41527196+EndaHallahan@users.noreply.github.com>"]
 edition = "2018"
 readme = "README.md"
 documentation = "https://docs.rs/bbclash/"
 repository = "https://github.com/EndaHallahan/BBClash"
-
+exclude = [
+	"benches/texts",
+	"tests",
+	".github",
+]
 
 [lib]
 name = "bbclash"
